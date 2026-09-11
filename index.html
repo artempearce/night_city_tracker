@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>NIGHT CITY // TRACKER</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Night City">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<style>
+  :root{
+    --bg:#07070b;
+    --panel:#111118;
+    --panel2:#16161f;
+    --border:#2a2a36;
+    --border-soft:#1c1c26;
+    --yellow:#fcee0a;
+    --cyan:#00e5ff;
+    --magenta:#ff2bd6;
+    --red:#ff2e4d;
+    --green:#39ff14;
+    --text:#e7e7f0;
+    --dim:#84849a;
+    --dim2:#4c4c5c;
+    --font-display:'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: ui-monospace, 'SF Mono', 'Roboto Mono', Consolas, monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(0,229,255,0.10), transparent 60%),
+      radial-gradient(ellipse 900px 500px at 100% 0%, rgba(255,43,214,0.09), transparent 55%),
+      var(--bg);
+  }
+  #scanlines{
+    position:fixed;inset:0;pointer-events:none;z-index:1;
+    background:repeating-linear-gradient(0deg, rgba(255,255,255,0.018) 0px, rgba(255,255,255,0.018) 1px, transparent 1px, transparent 3px);
+    mix-blend-mode:overlay;
+  }
+  #shell{position:relative;max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;z-index:2;}
+
+  /* ---------- HEADER ---------- */
+  #headerBar{
+    position:sticky;top:0;z-index:20;
+    background:linear-gradient(180deg, rgba(7,7,11,0.98), rgba(7,7,11,0.92));
+    border-bottom:1px solid var(--border);
+    padding:10px 14px 12px;
+    backdrop-filter:blur(6px);
+  }
+  .hdr-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .brand{
+    font-family:var(--font-display);font-weight:800;font-style:italic;
+    font-size:15px;letter-spacing:0.5px;color:var(--text);
+    clip-path:polygon(0 0,100% 0,92% 100%,0% 100%);
+  }
+  .brand b{color:var(--yellow);}
+  .brand-sub{font-size:9px;color:var(--dim);letter-spacing:2px;font-family:var(--font-mono);margin-top:1px;}
+  #eddiesBadge{
+    display:flex;align-items:center;gap:6px;
+    background:var(--panel2);border:1px solid var(--border);
+    padding:6px 10px;
+    clip-path:polygon(8px 0,100% 0,100% 100%,0 100%,0 8px);
+  }
+  #eddiesBadge .val{font-family:var(--font-mono);font-weight:700;color:var(--yellow);font-size:14px;}
+  #eddiesBadge .cur{font-size:10px;color:var(--dim);}
+  #gearBtn{
+    background:none;border:1px solid var(--border);color:var(--dim);
+    width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+    font-size:14px;cursor:pointer;margin-left:6px;flex-shrink:0;
+  }
+  #gearBtn:active{color:var(--yellow);border-color:var(--yellow);}
+
+  .rank-strip{display:flex;align-items:center;gap:10px;margin-top:10px;}
+  .save-warning{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    margin-top:8px;padding:6px 9px;
+    background:rgba(255,46,77,0.08);border:1px solid var(--red);
+    font-size:9.5px;color:var(--red);letter-spacing:0.3px;font-family:var(--font-mono);
+  }
+  .save-warning button{
+    flex-shrink:0;background:none;border:1px solid var(--red);color:var(--red);
+    font-family:var(--font-display);font-weight:700;font-size:9px;letter-spacing:0.5px;
+    text-transform:uppercase;padding:4px 8px;cursor:pointer;
+  }
+  .rank-chip{
+    font-family:var(--font-display);font-weight:800;font-size:11px;letter-spacing:1px;
+    padding:4px 10px;white-space:nowrap;
+    border:1px solid var(--rc);color:var(--rc);
+    clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);
+    text-transform:uppercase;
+  }
+  .lvl-track{flex:1;min-width:0;}
+  .lvl-row{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:10px;color:var(--dim);margin-bottom:3px;}
+  .bar{height:6px;background:var(--panel2);border:1px solid var(--border-soft);position:relative;overflow:hidden;}
+  .bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--bc,var(--yellow)),var(--bc2,var(--yellow)));box-shadow:0 0 8px var(--bc,var(--yellow));}
+
+  /* ---------- TABS ---------- */
+  #tabbar{
+    position:sticky;bottom:0;z-index:20;
+    display:flex;overflow-x:auto;gap:2px;
+    background:rgba(10,10,14,0.97);border-top:1px solid var(--border);
+    padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));
+    backdrop-filter:blur(6px);
+  }
+  .tab-btn{
+    flex:1 0 auto;min-width:76px;display:flex;flex-direction:column;align-items:center;gap:3px;
+    background:none;border:none;color:var(--dim2);padding:7px 4px 6px;cursor:pointer;
+    border-top:2px solid transparent;
+  }
+  .tab-btn .ic{font-size:16px;line-height:1;}
+  .tab-btn .lb{font-size:9px;letter-spacing:0.5px;font-family:var(--font-display);font-weight:700;text-transform:uppercase;}
+  .tab-btn.active{color:var(--yellow);border-top-color:var(--yellow);}
+  .tab-btn.active .ic{filter:drop-shadow(0 0 4px rgba(252,238,10,0.7));}
+
+  /* ---------- CONTENT ---------- */
+  #content{flex:1;padding:14px 14px 26px;}
+  .section-title{
+    font-family:var(--font-display);font-weight:800;font-size:13px;letter-spacing:1px;
+    color:var(--text);margin:18px 0 10px;text-transform:uppercase;
+    display:flex;align-items:center;gap:8px;
+  }
+  .section-title:first-child{margin-top:2px;}
+  .section-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent);}
+
+  .panel{
+    background:var(--panel);border:1px solid var(--border);
+    padding:14px;position:relative;
+  }
+  .panel-cut{clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px);}
+
+  /* rank hero */
+  .hero{
+    background:linear-gradient(135deg, var(--panel), var(--panel2));
+    border:1px solid var(--hc,var(--yellow));
+    padding:18px 16px;position:relative;overflow:hidden;
+    clip-path:polygon(18px 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%,0 18px);
+  }
+  .hero::before{
+    content:'';position:absolute;inset:0;
+    background:linear-gradient(120deg, transparent 40%, var(--hc,var(--yellow)) 50%, transparent 60%);
+    opacity:0.06;
+  }
+  .hero.legend{animation:legendPulse 2.6s ease-in-out infinite;}
+  @keyframes legendPulse{0%,100%{box-shadow:0 0 10px rgba(252,238,10,0.25);}50%{box-shadow:0 0 26px rgba(252,238,10,0.55);}}
+  .hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .hero-rankname{font-family:var(--font-display);font-weight:800;font-size:22px;font-style:italic;color:var(--hc,var(--yellow));letter-spacing:0.5px;}
+  .hero-idx{font-family:var(--font-mono);font-size:10px;color:var(--dim);margin-top:2px;}
+  .hero-level{text-align:right;}
+  .hero-level .n{font-family:var(--font-mono);font-weight:700;font-size:26px;color:var(--text);line-height:1;}
+  .hero-level .l{font-size:9px;color:var(--dim);letter-spacing:1px;}
+  .hero-bar-row{margin-top:14px;}
+  .hero-bar-nums{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:10px;color:var(--dim);margin-bottom:4px;}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;}
+  .stat-cell{background:var(--panel);border:1px solid var(--border);padding:9px 6px;text-align:center;}
+  .stat-cell .n{font-family:var(--font-mono);font-weight:700;font-size:16px;color:var(--cyan);}
+  .stat-cell .l{font-size:8.5px;color:var(--dim);letter-spacing:0.3px;margin-top:2px;line-height:1.2;}
+
+  .branch-mini{
+    display:flex;align-items:center;gap:10px;
+    background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--bc);
+    padding:10px 12px;margin-bottom:8px;
+  }
+  .branch-mini .ic{font-size:18px;color:var(--bc);width:22px;text-align:center;flex-shrink:0;}
+  .branch-mini .body{flex:1;min-width:0;}
+  .branch-mini .top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;}
+  .branch-mini .top .nm{font-weight:600;}
+  .branch-mini .top .lv{font-family:var(--font-mono);color:var(--bc);font-size:11px;}
+
+  /* branch full card */
+  .branch-card{
+    background:var(--panel);border:1px solid var(--border);border-top:3px solid var(--bc);
+    padding:14px;margin-bottom:12px;
+  }
+  .branch-card .head{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .branch-card .ic{font-size:22px;color:var(--bc);}
+  .branch-card .nm{font-family:var(--font-display);font-weight:800;font-size:15px;}
+  .branch-card .lvbig{margin-left:auto;text-align:right;}
+  .branch-card .lvbig .n{font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--bc);}
+  .branch-card .lvbig .l{font-size:8px;color:var(--dim);letter-spacing:1px;}
+  .branch-card .foot{display:flex;justify-content:space-between;margin-top:8px;font-size:10.5px;color:var(--dim);font-family:var(--font-mono);}
+
+  /* buttons */
+  .btn{
+    font-family:var(--font-display);font-weight:800;font-size:11.5px;letter-spacing:0.6px;
+    border:1px solid var(--yellow);color:var(--yellow);background:rgba(252,238,10,0.06);
+    padding:9px 14px;cursor:pointer;text-transform:uppercase;text-align:center;
+    clip-path:polygon(8px 0,100% 0,100% 100%,0 100%,0 8px);
+  }
+  .btn:active{background:rgba(252,238,10,0.18);}
+  .btn.full{width:100%;display:block;}
+  .btn.ghost{color:var(--dim);border-color:var(--border);background:none;}
+  .btn.ghost:active{color:var(--text);border-color:var(--dim);}
+  .btn.cyan{color:var(--cyan);border-color:var(--cyan);background:rgba(0,229,255,0.06);}
+  .btn.cyan:active{background:rgba(0,229,255,0.18);}
+  .btn.red{color:var(--red);border-color:var(--red);background:rgba(255,46,77,0.06);}
+  .btn.red:active{background:rgba(255,46,77,0.18);}
+  .btn.sm{padding:6px 10px;font-size:10px;}
+  .btn:disabled{opacity:0.35;pointer-events:none;}
+  .btn-row{display:flex;gap:8px;}
+  .btn-row .btn{flex:1;}
+  .icon-btn{background:none;border:1px solid var(--border);color:var(--dim);width:28px;height:28px;font-size:12px;cursor:pointer;flex-shrink:0;}
+  .icon-btn:active{border-color:var(--red);color:var(--red);}
+
+  /* segmented filter */
+  .seg{display:flex;border:1px solid var(--border);margin-bottom:12px;}
+  .seg-btn{flex:1;background:var(--panel);color:var(--dim);border:none;border-right:1px solid var(--border);padding:8px 4px;font-size:10.5px;font-family:var(--font-display);font-weight:700;letter-spacing:0.4px;text-transform:uppercase;cursor:pointer;}
+  .seg-btn:last-child{border-right:none;}
+  .seg-btn.active{background:var(--panel2);color:var(--yellow);}
+
+  /* task cards */
+  .task-card{background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--tc);padding:11px 12px;margin-bottom:9px;}
+  .task-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .task-tag{font-size:8.5px;font-family:var(--font-display);font-weight:800;letter-spacing:0.6px;text-transform:uppercase;color:var(--tc);}
+  .task-title{font-size:13.5px;font-weight:600;margin-top:3px;line-height:1.3;}
+  .task-meta{display:flex;gap:10px;margin-top:8px;font-family:var(--font-mono);font-size:11px;}
+  .task-meta .br{color:var(--dim);}
+  .task-meta .xp{color:var(--cyan);}
+  .task-meta .ed{color:var(--yellow);}
+  .task-actions{display:flex;gap:8px;margin-top:10px;}
+  .task-actions .btn{flex:1;}
+
+  .empty-note{
+    border:1px dashed var(--border);padding:18px 14px;text-align:center;color:var(--dim);
+    font-size:12.5px;line-height:1.6;
+  }
+  .empty-note b{color:var(--text);}
+
+  /* forms */
+  .form-panel{background:var(--panel2);border:1px solid var(--border);padding:13px;margin-bottom:12px;}
+  .field{margin-bottom:10px;}
+  .field label{display:block;font-size:10px;color:var(--dim);letter-spacing:0.5px;margin-bottom:4px;text-transform:uppercase;font-family:var(--font-display);font-weight:700;}
+  .field input[type=text], .field input[type=number], .field select, .field textarea{
+    width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);
+    padding:8px 9px;font-size:13px;font-family:inherit;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{outline:none;border-color:var(--yellow);}
+  .field-row{display:flex;gap:8px;}
+  .field-row .field{flex:1;}
+  .type-toggle{display:flex;gap:8px;margin-bottom:10px;}
+  .type-toggle button{flex:1;padding:8px;border:1px solid var(--border);background:var(--bg);color:var(--dim);font-size:11px;font-family:var(--font-display);font-weight:700;text-transform:uppercase;cursor:pointer;}
+  .type-toggle button.active.quest{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,0.08);}
+  .type-toggle button.active.boss{border-color:var(--red);color:var(--red);background:rgba(255,46,77,0.08);}
+
+  /* shop */
+  .shop-card{background:var(--panel);border:1px solid var(--border);padding:12px;margin-bottom:9px;display:flex;gap:10px;align-items:center;}
+  .shop-card .body{flex:1;min-width:0;}
+  .shop-card .nm{font-weight:700;font-size:13.5px;}
+  .shop-card .ds{font-size:11.5px;color:var(--dim);margin-top:3px;line-height:1.4;}
+  .shop-card .side{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+  .cost-tag{font-family:var(--font-mono);color:var(--yellow);font-weight:700;font-size:13px;white-space:nowrap;}
+
+  /* achievements */
+  .ach-card{background:var(--panel);border:1px solid var(--border);padding:12px;margin-bottom:9px;position:relative;}
+  .ach-card.locked{opacity:0.55;}
+  .ach-card.unlocked{border-color:var(--green);box-shadow:0 0 0 1px rgba(57,255,20,0.15) inset;}
+  .ach-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .ach-name{font-weight:700;font-size:13.5px;display:flex;align-items:center;gap:6px;}
+  .ach-badge{font-size:8px;font-family:var(--font-mono);color:var(--dim2);border:1px solid var(--border);padding:1px 5px;letter-spacing:0.5px;}
+  .ach-desc{font-size:11.5px;color:var(--dim);margin-top:4px;line-height:1.4;}
+  .ach-foot{display:flex;justify-content:space-between;align-items:center;margin-top:9px;}
+  .ach-reward{font-family:var(--font-mono);font-size:11px;color:var(--cyan);}
+  .ach-reward .ed{color:var(--yellow);margin-left:8px;}
+  .ach-progress{font-family:var(--font-mono);font-size:10px;color:var(--dim2);margin-top:6px;}
+
+  /* log */
+  .log-item{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border-soft);}
+  .log-ic{width:26px;height:26px;flex-shrink:0;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--lc);}
+  .log-body{flex:1;min-width:0;}
+  .log-title{font-size:12.5px;font-weight:600;}
+  .log-sub{font-size:10.5px;color:var(--dim);margin-top:2px;font-family:var(--font-mono);}
+  .log-time{font-size:9.5px;color:var(--dim2);margin-top:2px;}
+
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(4,4,7,0.82);z-index:50;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px);}
+  .modal{width:100%;max-width:560px;background:var(--panel);border-top:1px solid var(--yellow);padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));max-height:80vh;overflow-y:auto;}
+  .modal-title{font-family:var(--font-display);font-weight:800;font-size:15px;letter-spacing:0.5px;text-transform:uppercase;color:var(--yellow);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
+  .modal-close{background:none;border:none;color:var(--dim);font-size:18px;cursor:pointer;}
+  .modal .btn.full{margin-bottom:9px;}
+  .danger-zone{margin-top:18px;padding-top:14px;border-top:1px dashed var(--border);}
+  .danger-zone .lbl{font-size:10px;color:var(--red);letter-spacing:1px;font-family:var(--font-display);font-weight:700;margin-bottom:8px;text-transform:uppercase;}
+
+  /* toasts */
+  #toastContainer{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;gap:6px;align-items:center;width:100%;max-width:520px;padding:0 12px;pointer-events:none;}
+  .toast{
+    background:rgba(12,12,17,0.95);border:1px solid var(--tc,var(--cyan));color:var(--text);
+    padding:9px 16px;font-size:12px;font-family:var(--font-mono);
+    opacity:0;transform:translateY(-10px);transition:opacity 0.35s ease, transform 0.35s ease;
+    box-shadow:0 0 14px rgba(0,0,0,0.5);
+  }
+  .toast.show{opacity:1;transform:translateY(0);}
+  .toast.toast-level{--tc:var(--yellow);color:var(--yellow);}
+  .toast.toast-rank{--tc:var(--magenta);color:var(--magenta);}
+  .toast.toast-achievement{--tc:var(--green);color:var(--green);}
+  .toast.toast-error{--tc:var(--red);color:var(--red);}
+  .toast.toast-branch{--tc:var(--cyan);}
+
+  .loading-screen{padding:80px 20px;text-align:center;color:var(--dim);font-family:var(--font-mono);font-size:12px;letter-spacing:2px;}
+
+  ::-webkit-scrollbar{width:0;height:0;}
+</style>
+</head>
+<body>
+<div id="scanlines"></div>
+<div id="toastContainer"></div>
+<input type="file" id="importFileInput" accept="application/json" style="display:none">
+<div id="shell">
+  <div id="app"><div class="loading-screen">ПОДКЛЮЧЕНИЕ К СЕТИ NIGHT CITY...</div></div>
+</div>
+
+<script>
+/* =================== CONSTANTS =================== */
+const RANKS = [
+  {name:'Новичок', color:'#9ca3af'},
+  {name:'Стритрэт', color:'#a8a15c'},
+  {name:'Скавенджер', color:'#c2793b'},
+  {name:'Раннер', color:'#e08e0b'},
+  {name:'Дата-раннер', color:'#eab308'},
+  {name:'Соло', color:'#84cc16'},
+  {name:'Скриптер', color:'#22c55e'},
+  {name:'Кибер-соло', color:'#10b981'},
+  {name:'Техно-фанк', color:'#14b8a6'},
+  {name:'Наёмник', color:'#06b6d4'},
+  {name:'Киберпанк', color:'#0ea5e9'},
+  {name:'Нетраннер', color:'#3b82f6'},
+  {name:'Ветеран улиц', color:'#6366f1'},
+  {name:'Элит-соло', color:'#8b5cf6'},
+  {name:'Корп-агент', color:'#a855f7'},
+  {name:'Хэдхантер', color:'#d946ef'},
+  {name:'Фиксер', color:'#ec4899'},
+  {name:'Эджраннер', color:'#f43f5e'},
+  {name:'Призрак Найт-Сити', color:'#ef4444'},
+  {name:'Легенда Найт-Сити', color:'#fcee0a'},
+];
+
+const BRANCHES = [
+  {key:'python', name:'Python', icon:'⌁', color:'#00e5ff'},
+  {key:'cyberdesign', name:'Кибер-дизайн', icon:'◈', color:'#ff2bd6'},
+  {key:'bookworm', name:'Книжный червь', icon:'▤', color:'#ffb000'},
+  {key:'netrunner', name:'Нетраннер', icon:'◎', color:'#39ff14'},
+  {key:'cyberaffairs', name:'Кибер-дела', icon:'⬡', color:'#fcee0a'},
+];
+
+const SYSTEM_ACHIEVEMENTS = [
+  {id:'sys_first_step', name:'Первый шаг', desc:'Выполнено первое задание от фиксера', xp:20, eddies:20, system:true, cond:'first_quest'},
+  {id:'sys_psycho_hunter', name:'Охотник на киберпсихов', desc:'Победить киберпсихов 3 раза', xp:50, eddies:50, system:true, cond:'boss_3'},
+  {id:'sys_first_purchase', name:'Первая покупка', desc:'Купить что-то в лавке торговца', xp:15, eddies:0, system:true, cond:'purchase_1'},
+  {id:'sys_runner7', name:'Раннер', desc:'Занимайся 7 дней подряд', xp:70, eddies:70, system:true, cond:'streak_7'},
+  {id:'sys_reaper_priest', name:'И жнец, и жрец', desc:'Достигнуть 5 уровня в каждой ветке', xp:150, eddies:150, system:true, cond:'all_branches_5'},
+  {id:'sys_real_netrunner', name:'Реальный нетраннер', desc:'Достигнуть 5 уровня в ветке «Нетраннер»', xp:60, eddies:60, system:true, cond:'branch_5_netrunner'},
+  {id:'sys_cyberhacker', name:'Кибер-хакер', desc:'Достигнуть 5 уровня в ветке «Python»', xp:60, eddies:60, system:true, cond:'branch_5_python'},
+  {id:'sys_arasaka_designer', name:'Дизайнер Арасаки', desc:'Достигнуть 5 уровня в ветке «Кибер-дизайн»', xp:60, eddies:60, system:true, cond:'branch_5_cyberdesign'},
+  {id:'sys_cyberspace_reader', name:'Чтец Киберпространства', desc:'Достигнуть 5 уровня в ветке «Книжный червь»', xp:60, eddies:60, system:true, cond:'branch_5_bookworm'},
+  {id:'sys_mercenary_nc', name:'Наёмник Найт-Сити', desc:'Достигнуть ранга «Наёмник»', xp:100, eddies:100, system:true, cond:'rank_10'},
+  {id:'sys_good_morning_nc', name:'Доброе утро, Найт-Сити', desc:'Достигнуть ранга «Легенда Найт-Сити»', xp:500, eddies:500, system:true, cond:'rank_20'},
+  {id:'sys_own_fixer', name:'Сам себе фиксер', desc:'Достигнуть 5 уровня в ветке «Кибер-дела»', xp:60, eddies:60, system:true, cond:'branch_5_cyberaffairs'},
+];
+
+const DEFAULT_SHOP = [
+  {name:'Смена в «Афтерлайф»', desc:'Полчаса любимой игры или сериала без чувства вины', cost:40},
+  {name:'Визит к Виктору', desc:'Небольшая покупка для себя', cost:80},
+  {name:'Ночь в мегабилдинге', desc:'Вечер полностью без дел — заслуженный отдых', cost:120},
+  {name:'Заказ из лучшей забегаловки', desc:'Любимая еда навынос', cost:60},
+  {name:'Отпуск в Пустошах', desc:'Целый выходной день без задач и планов', cost:300},
+];
+
+const STORAGE_KEY = 'night_city_tracker_state_v1';
+
+/* =================== STATE =================== */
+let STATE = null;
+let saveOk = true;
+let UI = {tab:'overview', taskType:'quest', taskFilter:'all', logFilter:'all',
+          showAddTask:false, showAddShop:false, showAddAch:false, showSettings:false};
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+function defaultState(){
+  return {
+    eddies:0,
+    bonusXP:0,
+    branches:{python:0, cyberdesign:0, bookworm:0, netrunner:0, cyberaffairs:0},
+    tasks:[],
+    log:[],
+    shop:DEFAULT_SHOP.map(s=>({...s, id:uid()})),
+    purchases:[],
+    achievements:SYSTEM_ACHIEVEMENTS.map(a=>({...a, unlocked:false, unlockedAt:null})),
+    activityDates:[],
+    createdAt:Date.now(),
+  };
+}
+
+function migrateState(loaded){
+  const d = defaultState();
+  const s = Object.assign({}, d, loaded||{});
+  s.branches = Object.assign({}, d.branches, (loaded&&loaded.branches)||{});
+  s.tasks = (loaded&&loaded.tasks)||[];
+  s.log = (loaded&&loaded.log)||[];
+  s.shop = (loaded&&loaded.shop&&loaded.shop.length)?loaded.shop:d.shop;
+  s.purchases = (loaded&&loaded.purchases)||[];
+  s.activityDates = (loaded&&loaded.activityDates)||[];
+  const existing = (loaded&&loaded.achievements)||[];
+  const existingIds = new Set(existing.map(a=>a.id));
+  s.achievements = existing.slice();
+  SYSTEM_ACHIEVEMENTS.forEach(sa=>{ if(!existingIds.has(sa.id)) s.achievements.push({...sa, unlocked:false, unlockedAt:null}); });
+  s.eddies = typeof loaded?.eddies==='number' ? loaded.eddies : 0;
+  s.bonusXP = typeof loaded?.bonusXP==='number' ? loaded.bonusXP : 0;
+  return s;
+}
+
+/* =================== STORAGE (localStorage браузера устройства) =================== */
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){
+    console.error('load failed', e);
+  }
+  return null;
+}
+function trimState(){
+  // Не даём журналу и истории расти бесконечно.
+  const MAX_LOG = 500;
+  if(STATE.log.length > MAX_LOG) STATE.log = STATE.log.slice(0, MAX_LOG);
+  const MAX_PURCHASES = 500;
+  if(STATE.purchases.length > MAX_PURCHASES) STATE.purchases = STATE.purchases.slice(-MAX_PURCHASES);
+  const MAX_DATES = 400;
+  if(STATE.activityDates.length > MAX_DATES) STATE.activityDates = STATE.activityDates.slice(-MAX_DATES);
+}
+
+function persist(){
+  let payload;
+  try{
+    trimState();
+    payload = JSON.stringify(STATE);
+  }catch(e){
+    console.error('serialize failed', e);
+    showToast({text:'ОШИБКА ОБРАБОТКИ ДАННЫХ', kind:'error'});
+    return;
+  }
+  try{
+    localStorage.setItem(STORAGE_KEY, payload);
+    if(!saveOk){
+      saveOk = true;
+      showToast({text:'СОХРАНЕНИЕ ВОССТАНОВЛЕНО', kind:'achievement'});
+      render();
+    }
+  }catch(e){
+    console.error('save failed', e);
+    if(saveOk){
+      saveOk = false;
+      showToast({text:'НЕ УДАЛОСЬ СОХРАНИТЬ В ЭТОМ БРАУЗЕРЕ. ЭКСПОРТИРУЙ ПРОГРЕСС ВРУЧНУЮ', kind:'error'});
+      render();
+    }
+  }
+}
+function retrySave(){
+  showToast({text:'ПОВТОРНАЯ ПОПЫТКА СОХРАНЕНИЯ...', kind:'branch'});
+  persist();
+}
+
+/* =================== LEVEL / RANK MATH =================== */
+function xpToNext(level){ return 100 + (level-1)*25; }
+function computeLevel(totalXP){
+  let level=1, rem=Math.max(0,totalXP||0);
+  while(rem >= xpToNext(level)){ rem -= xpToNext(level); level++; }
+  return {level, into:rem, need:xpToNext(level)};
+}
+function getBranchLevel(key){ return computeLevel(STATE.branches[key]||0); }
+function getAccountXP(){
+  return BRANCHES.reduce((s,b)=>s+(STATE.branches[b.key]||0),0) + (STATE.bonusXP||0);
+}
+function getAccountLevel(){ return computeLevel(getAccountXP()); }
+function getRankIndex(level){ return Math.min(20, Math.floor((level-1)/5)+1); }
+function getRank(level){ const idx=getRankIndex(level); return {...RANKS[idx-1], index:idx}; }
+
+function calcStreak(dates){
+  const set = new Set(dates||[]);
+  function fmt(d){ const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${dd}`; }
+  let cursor = new Date();
+  if(!set.has(fmt(cursor))){
+    cursor.setDate(cursor.getDate()-1);
+    if(!set.has(fmt(cursor))) return 0;
+  }
+  let streak=0;
+  while(set.has(fmt(cursor))){ streak++; cursor.setDate(cursor.getDate()-1); }
+  return streak;
+}
+function todayStr(){
+  const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function countLog(type){ return STATE.log.filter(e=>e.type===type).length; }
+
+/* =================== ACHIEVEMENT CONDITIONS =================== */
+function evalCondition(cond){
+  switch(cond){
+    case 'first_quest': return countLog('quest')>=1;
+    case 'boss_3': return countLog('boss')>=3;
+    case 'purchase_1': return countLog('purchase')>=1;
+    case 'streak_7': return calcStreak(STATE.activityDates)>=7;
+    case 'all_branches_5': return BRANCHES.every(b=>getBranchLevel(b.key).level>=5);
+    case 'branch_5_python': return getBranchLevel('python').level>=5;
+    case 'branch_5_cyberdesign': return getBranchLevel('cyberdesign').level>=5;
+    case 'branch_5_bookworm': return getBranchLevel('bookworm').level>=5;
+    case 'branch_5_netrunner': return getBranchLevel('netrunner').level>=5;
+    case 'branch_5_cyberaffairs': return getBranchLevel('cyberaffairs').level>=5;
+    case 'rank_10': return getRankIndex(getAccountLevel().level)>=10;
+    case 'rank_20': return getRankIndex(getAccountLevel().level)>=20;
+    default: return false;
+  }
+}
+function achievementProgress(cond){
+  switch(cond){
+    case 'first_quest': return Math.min(countLog('quest'),1)+' / 1';
+    case 'boss_3': return Math.min(countLog('boss'),3)+' / 3';
+    case 'purchase_1': return Math.min(countLog('purchase'),1)+' / 1';
+    case 'streak_7': return Math.min(calcStreak(STATE.activityDates),7)+' / 7 дн.';
+    case 'all_branches_5': return BRANCHES.filter(b=>getBranchLevel(b.key).level>=5).length+' / 5 веток';
+    case 'branch_5_python': return Math.min(getBranchLevel('python').level,5)+' / 5 ур.';
+    case 'branch_5_cyberdesign': return Math.min(getBranchLevel('cyberdesign').level,5)+' / 5 ур.';
+    case 'branch_5_bookworm': return Math.min(getBranchLevel('bookworm').level,5)+' / 5 ур.';
+    case 'branch_5_netrunner': return Math.min(getBranchLevel('netrunner').level,5)+' / 5 ур.';
+    case 'branch_5_cyberaffairs': return Math.min(getBranchLevel('cyberaffairs').level,5)+' / 5 ур.';
+    case 'rank_10': return Math.min(getRankIndex(getAccountLevel().level),10)+' / 10 ранг';
+    case 'rank_20': return Math.min(getRankIndex(getAccountLevel().level),20)+' / 20 ранг';
+    default: return null;
+  }
+}
+function checkAchievements(){
+  const unlocked=[];
+  STATE.achievements.forEach(a=>{
+    if(!a.unlocked && a.cond && a.cond!=='manual' && evalCondition(a.cond)){
+      a.unlocked=true; a.unlockedAt=Date.now();
+      STATE.bonusXP += (a.xp||0);
+      STATE.eddies += (a.eddies||0);
+      STATE.log.unshift({id:uid(), type:'achievement', title:a.name, xp:a.xp, eddies:a.eddies, at:Date.now()});
+      unlocked.push(a);
+    }
+  });
+  return unlocked;
+}
+
+/* =================== ACTIONS =================== */
+function commit(mutate){
+  const prevLevel = getAccountLevel().level;
+  const prevRank = getRank(prevLevel).name;
+  const prevBranchLv = {}; BRANCHES.forEach(b=>prevBranchLv[b.key]=getBranchLevel(b.key).level);
+
+  mutate();
+  const newUnlocked = checkAchievements();
+  persist();
+
+  const newLevel = getAccountLevel().level;
+  const newRank = getRank(newLevel).name;
+  const toasts=[];
+  BRANCHES.forEach(b=>{
+    const nl = getBranchLevel(b.key).level;
+    if(nl>prevBranchLv[b.key]) toasts.push({text:`${b.name.toUpperCase()}: УРОВЕНЬ ${nl}`, kind:'branch', color:b.color});
+  });
+  if(newLevel>prevLevel) toasts.push({text:`НОВЫЙ УРОВЕНЬ АККАУНТА: ${newLevel}`, kind:'level'});
+  if(newRank!==prevRank) toasts.push({text:`НОВОЕ ЗВАНИЕ: ${newRank.toUpperCase()}`, kind:'rank'});
+  newUnlocked.forEach(a=>toasts.push({text:`ДОСТИЖЕНИЕ: ${a.name}`, kind:'achievement'}));
+
+  render();
+  toasts.forEach((t,i)=>setTimeout(()=>showToast(t), i*350));
+}
+
+function addTask(type,title,branch,xp,eddies){
+  if(!title || !title.trim()) return;
+  commit(()=>{
+    STATE.tasks.unshift({id:uid(), type, title:title.trim(), branch,
+      xp:Math.max(0,parseInt(xp)||0), eddies:Math.max(0,parseInt(eddies)||0), createdAt:Date.now()});
+  });
+}
+function completeTask(id){
+  commit(()=>{
+    const idx = STATE.tasks.findIndex(t=>t.id===id);
+    if(idx<0) return;
+    const t = STATE.tasks[idx];
+    STATE.tasks.splice(idx,1);
+    STATE.branches[t.branch] = (STATE.branches[t.branch]||0) + t.xp;
+    STATE.eddies += t.eddies;
+    const today = todayStr();
+    if(!STATE.activityDates.includes(today)) STATE.activityDates.push(today);
+    STATE.log.unshift({id:uid(), type:t.type, title:t.title, branch:t.branch, xp:t.xp, eddies:t.eddies, at:Date.now()});
+  });
+}
+function deleteTask(id){
+  STATE.tasks = STATE.tasks.filter(t=>t.id!==id);
+  persist(); render();
+}
+function addShopItem(name,desc,cost){
+  if(!name || !name.trim()) return;
+  STATE.shop.push({id:uid(), name:name.trim(), desc:(desc||'').trim(), cost:Math.max(0,parseInt(cost)||0)});
+  persist(); render();
+}
+function deleteShopItem(id){
+  STATE.shop = STATE.shop.filter(s=>s.id!==id);
+  persist(); render();
+}
+function buyItem(id){
+  const item = STATE.shop.find(s=>s.id===id);
+  if(!item) return;
+  if(STATE.eddies < item.cost){ showToast({text:'НЕДОСТАТОЧНО €$', kind:'error'}); return; }
+  commit(()=>{
+    STATE.eddies -= item.cost;
+    STATE.purchases.push({id:uid(), itemId:item.id, name:item.name, cost:item.cost, at:Date.now()});
+    STATE.log.unshift({id:uid(), type:'purchase', title:item.name, eddies:-item.cost, at:Date.now()});
+  });
+}
+function addAchievementCustom(name,desc,xp,eddies){
+  if(!name || !name.trim()) return;
+  STATE.achievements.push({id:uid(), name:name.trim(), desc:(desc||'').trim(),
+    xp:Math.max(0,parseInt(xp)||0), eddies:Math.max(0,parseInt(eddies)||0), system:false, cond:'manual', unlocked:false, unlockedAt:null});
+  persist(); render();
+}
+function claimAchievement(id){
+  commit(()=>{
+    const a = STATE.achievements.find(x=>x.id===id);
+    if(!a || a.unlocked) return;
+    a.unlocked=true; a.unlockedAt=Date.now();
+    STATE.bonusXP += (a.xp||0);
+    STATE.eddies += (a.eddies||0);
+    STATE.log.unshift({id:uid(), type:'achievement', title:a.name, xp:a.xp, eddies:a.eddies, at:Date.now()});
+  });
+}
+function deleteAchievementCustom(id){
+  const a = STATE.achievements.find(x=>x.id===id);
+  if(!a || a.system) return;
+  STATE.achievements = STATE.achievements.filter(x=>x.id!==id);
+  persist(); render();
+}
+function resetAll(){
+  STATE = defaultState();
+  persist(); render();
+}
+function exportData(){
+  const blob = new Blob([JSON.stringify(STATE,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'night-city-tracker-export.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast({text:'ДАННЫЕ ЭКСПОРТИРОВАНЫ', kind:'achievement'});
+}
+function handleImportFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      const parsed = JSON.parse(ev.target.result);
+      if(!parsed || typeof parsed!=='object' || !parsed.branches){
+        showToast({text:'ФАЙЛ ПОВРЕЖДЁН ИЛИ НЕВЕРНОГО ФОРМАТА', kind:'error'});
+        return;
+      }
+      if(confirm('Заменить текущий прогресс данными из файла? Это действие необратимо.')){
+        STATE = migrateState(parsed);
+        persist(); render();
+        showToast({text:'ДАННЫЕ ИМПОРТИРОВАНЫ', kind:'achievement'});
+      }
+    }catch(err){
+      showToast({text:'НЕ УДАЛОСЬ ПРОЧИТАТЬ ФАЙЛ', kind:'error'});
+    }
+    e.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+/* =================== TOASTS =================== */
+function showToast({text, kind='info', color}){
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = 'toast toast-'+kind;
+  if(color) el.style.setProperty('--tc', color);
+  el.textContent = text;
+  container.appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('show'));
+  setTimeout(()=>{ el.classList.remove('show'); setTimeout(()=>el.remove(),400); }, 3400);
+}
+
+/* =================== HELPERS =================== */
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function branchByKey(k){ return BRANCHES.find(b=>b.key===k); }
+function fmtDT(ts){
+  return new Date(ts).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+
+/* =================== RENDER =================== */
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = renderHeader() + renderTabbar() + `<div id="content">${renderTabContent()}</div>` + (UI.showSettings?renderSettings():'');
+}
+
+function renderHeader(){
+  const accLevel = getAccountLevel();
+  const rank = getRank(accLevel.level);
+  const pct = Math.min(100, Math.round((accLevel.into/accLevel.need)*100));
+  return `
+  <div id="headerBar">
+    <div class="hdr-top">
+      <div>
+        <div class="brand">NIGHT CITY <b>// TRACKER</b></div>
+        <div class="brand-sub">СЕТЕВОЙ ПРОФИЛЬ АКТИВЕН</div>
+      </div>
+      <div style="display:flex;align-items:center;">
+        <div id="eddiesBadge"><span class="cur">€$</span><span class="val">${STATE.eddies}</span></div>
+        <button id="gearBtn" data-action="open-settings" title="Настройки">⚙</button>
+      </div>
+    </div>
+    <div class="rank-strip">
+      <div class="rank-chip" style="--rc:${rank.color}">${esc(rank.name)}</div>
+      <div class="lvl-track">
+        <div class="lvl-row"><span>УР. ${accLevel.level}</span><span>${accLevel.into} / ${accLevel.need} XP</span></div>
+        <div class="bar" style="--bc:${rank.color};--bc2:${rank.color}"><i style="width:${pct}%"></i></div>
+      </div>
+    </div>
+    ${!saveOk ? `
+    <div class="save-warning">
+      <span>⚠ АВТОСОХРАНЕНИЕ НЕДОСТУПНО — ЭКСПОРТИРУЙ ПРОГРЕСС ВРУЧНУЮ</span>
+      <button data-action="retry-save">Повторить</button>
+    </div>` : ''}
+  </div>`;
+}
+
+function renderTabbar(){
+  const tabs = [
+    {id:'overview', ic:'◆', lb:'Обзор'},
+    {id:'tasks', ic:'▶', lb:'Задания'},
+    {id:'branches', ic:'▣', lb:'Ветви'},
+    {id:'shop', ic:'$', lb:'Лавка'},
+    {id:'achievements', ic:'★', lb:'Награды'},
+    {id:'log', ic:'≡', lb:'Журнал'},
+  ];
+  return `<div id="tabbar">${tabs.map(t=>`
+    <button class="tab-btn ${UI.tab===t.id?'active':''}" data-action="set-tab" data-tab="${t.id}">
+      <span class="ic">${t.ic}</span><span class="lb">${t.lb}</span>
+    </button>`).join('')}</div>`;
+}
+
+function renderTabContent(){
+  switch(UI.tab){
+    case 'overview': return renderOverview();
+    case 'tasks': return renderTasks();
+    case 'branches': return renderBranches();
+    case 'shop': return renderShop();
+    case 'achievements': return renderAchievements();
+    case 'log': return renderLog();
+    default: return '';
+  }
+}
+
+function renderOverview(){
+  const accLevel = getAccountLevel();
+  const rank = getRank(accLevel.level);
+  const pct = Math.min(100, Math.round((accLevel.into/accLevel.need)*100));
+  const streak = calcStreak(STATE.activityDates);
+  const questsDone = countLog('quest');
+  const bossDone = countLog('boss');
+  const achUnlocked = STATE.achievements.filter(a=>a.unlocked).length;
+  const isLegend = rank.index===20;
+
+  return `
+    <div class="hero ${isLegend?'legend':''}" style="--hc:${rank.color}">
+      <div class="hero-top">
+        <div>
+          <div class="hero-rankname">${esc(rank.name)}</div>
+          <div class="hero-idx">ЗВАНИЕ ${rank.index} / 20 · ${getAccountXP()} XP ВСЕГО</div>
+        </div>
+        <div class="hero-level">
+          <div class="n">${accLevel.level}</div>
+          <div class="l">УРОВЕНЬ АККАУНТА</div>
+        </div>
+      </div>
+      <div class="hero-bar-row">
+        <div class="hero-bar-nums"><span>ПРОГРЕСС ДО СЛЕД. УРОВНЯ</span><span>${accLevel.into} / ${accLevel.need}</span></div>
+        <div class="bar" style="--bc:${rank.color};--bc2:${rank.color}"><i style="width:${pct}%"></i></div>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-cell"><div class="n">${streak}</div><div class="l">ДНЕЙ ПОДРЯД</div></div>
+      <div class="stat-cell"><div class="n">${questsDone}</div><div class="l">ЗАДАНИЙ ВЫПОЛНЕНО</div></div>
+      <div class="stat-cell"><div class="n">${bossDone}</div><div class="l">КИБЕРПСИХОВ ПОБЕЖДЕНО</div></div>
+      <div class="stat-cell"><div class="n">${achUnlocked}/${STATE.achievements.length}</div><div class="l">НАГРАД</div></div>
+    </div>
+
+    <div class="section-title">Ветви</div>
+    ${BRANCHES.map(b=>{
+      const lv = getBranchLevel(b.key);
+      const p = Math.min(100, Math.round((lv.into/lv.need)*100));
+      return `
+      <div class="branch-mini" style="--bc:${b.color}">
+        <div class="ic">${b.icon}</div>
+        <div class="body">
+          <div class="top"><span class="nm">${esc(b.name)}</span><span class="lv">УР. ${lv.level}</span></div>
+          <div class="bar" style="--bc:${b.color};--bc2:${b.color}"><i style="width:${p}%"></i></div>
+        </div>
+      </div>`;
+    }).join('')}
+  `;
+}
+
+function renderTasks(){
+  const filters = [
+    {id:'all', lb:'Все'},
+    {id:'quest', lb:'Фиксер'},
+    {id:'boss', lb:'Киберпсихи'},
+  ];
+  let list = STATE.tasks.slice().sort((a,b)=>b.createdAt-a.createdAt);
+  if(UI.taskFilter!=='all') list = list.filter(t=>t.type===UI.taskFilter);
+
+  const addForm = UI.showAddTask ? `
+    <div class="form-panel">
+      <div class="type-toggle">
+        <button class="${UI.taskType==='quest'?'active quest':''}" data-action="set-task-type" data-type="quest">Задание от фиксера</button>
+        <button class="${UI.taskType==='boss'?'active boss':''}" data-action="set-task-type" data-type="boss">Битва с киберпсихом</button>
+      </div>
+      <div class="field">
+        <label>Название</label>
+        <input type="text" id="taskTitleInput" placeholder="${UI.taskType==='boss'?'например, разобраться со сложной темой':'например, доделать модуль курса'}">
+      </div>
+      <div class="field">
+        <label>Ветвь</label>
+        <select id="taskBranchSelect">${BRANCHES.map(b=>`<option value="${b.key}">${esc(b.name)}</option>`).join('')}</select>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Награда XP</label><input type="number" id="taskXpInput" min="0" value="20"></div>
+        <div class="field"><label>Награда €$</label><input type="number" id="taskEddiesInput" min="0" value="10"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn ghost" data-action="cancel-add-task">Отмена</button>
+        <button class="btn" data-action="submit-task">Принять контракт</button>
+      </div>
+    </div>` : '';
+
+  return `
+    <div class="section-title">Активные контракты</div>
+    ${!UI.showAddTask ? `<button class="btn full" data-action="toggle-add-task" style="margin-bottom:12px;">+ Новый контракт</button>` : ''}
+    ${addForm}
+    <div class="seg">${filters.map(f=>`<button class="seg-btn ${UI.taskFilter===f.id?'active':''}" data-action="set-task-filter" data-filter="${f.id}">${f.lb}</button>`).join('')}</div>
+    ${list.length===0 ? `<div class="empty-note">Пока нет активных контрактов.<br><b>Прими задание у фиксера</b> или объяви охоту на киберпсихо.</div>` :
+      list.map(t=>{
+        const br = branchByKey(t.branch);
+        const isBoss = t.type==='boss';
+        return `
+        <div class="task-card" style="--tc:${isBoss?'var(--red)':'var(--cyan)'}">
+          <div class="task-top">
+            <div>
+              <div class="task-tag">${isBoss?'Битва с киберпсихом':'Задание от фиксера'}</div>
+              <div class="task-title">${esc(t.title)}</div>
+            </div>
+          </div>
+          <div class="task-meta">
+            <span class="br" style="color:${br.color}">${br.icon} ${esc(br.name)}</span>
+            <span class="xp">+${t.xp} XP</span>
+            <span class="ed">+${t.eddies} €$</span>
+          </div>
+          <div class="task-actions">
+            <button class="icon-btn" data-action="delete-task" data-id="${t.id}">✕</button>
+            <button class="btn ${isBoss?'red':'cyan'}" data-action="complete-task" data-id="${t.id}">${isBoss?'Победить':'Выполнить'}</button>
+          </div>
+        </div>`;
+      }).join('')}
+  `;
+}
+
+function renderBranches(){
+  return `
+    <div class="section-title">Ветви развития</div>
+    ${BRANCHES.map(b=>{
+      const lv = getBranchLevel(b.key);
+      const p = Math.min(100, Math.round((lv.into/lv.need)*100));
+      const qc = STATE.log.filter(e=>e.branch===b.key && e.type==='quest').length;
+      const bc = STATE.log.filter(e=>e.branch===b.key && e.type==='boss').length;
+      return `
+      <div class="branch-card" style="--bc:${b.color}">
+        <div class="head">
+          <div class="ic">${b.icon}</div>
+          <div class="nm">${esc(b.name)}</div>
+          <div class="lvbig"><div class="n">${lv.level}</div><div class="l">УРОВЕНЬ</div></div>
+        </div>
+        <div class="bar" style="--bc:${b.color};--bc2:${b.color}"><i style="width:${p}%"></i></div>
+        <div class="foot">
+          <span>${lv.into} / ${lv.need} XP</span>
+          <span>${qc} заданий · ${bc} киберпсихов</span>
+        </div>
+      </div>`;
+    }).join('')}
+  `;
+}
+
+function renderShop(){
+  const addForm = UI.showAddShop ? `
+    <div class="form-panel">
+      <div class="field"><label>Название товара</label><input type="text" id="shopNameInput" placeholder="например, час видеоигр"></div>
+      <div class="field"><label>Описание</label><input type="text" id="shopDescInput" placeholder="необязательно"></div>
+      <div class="field"><label>Цена, €$</label><input type="number" id="shopCostInput" min="0" value="50"></div>
+      <div class="btn-row">
+        <button class="btn ghost" data-action="cancel-add-shop">Отмена</button>
+        <button class="btn" data-action="submit-shop">Добавить в лавку</button>
+      </div>
+    </div>` : '';
+
+  return `
+    <div class="section-title">Лавка торговца</div>
+    <div class="panel" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:11px;color:var(--dim);letter-spacing:0.5px;">БАЛАНС</span>
+      <span style="font-family:var(--font-mono);font-size:20px;color:var(--yellow);font-weight:700;">€$ ${STATE.eddies}</span>
+    </div>
+    ${!UI.showAddShop ? `<button class="btn full" data-action="toggle-add-shop" style="margin-bottom:12px;">+ Новый товар</button>` : ''}
+    ${addForm}
+    ${STATE.shop.length===0 ? `<div class="empty-note">Лавка пуста. Добавь первую награду.</div>` :
+      STATE.shop.map(item=>`
+      <div class="shop-card">
+        <div class="body">
+          <div class="nm">${esc(item.name)}</div>
+          ${item.desc?`<div class="ds">${esc(item.desc)}</div>`:''}
+        </div>
+        <div class="side">
+          <span class="cost-tag">€$ ${item.cost}</span>
+          <div style="display:flex;gap:6px;">
+            <button class="icon-btn" data-action="delete-shop" data-id="${item.id}">✕</button>
+            <button class="btn sm ${STATE.eddies<item.cost?'ghost':''}" data-action="buy-item" data-id="${item.id}" ${STATE.eddies<item.cost?'disabled':''}>Купить</button>
+          </div>
+        </div>
+      </div>`).join('')}
+  `;
+}
+
+function renderAchievements(){
+  const addForm = UI.showAddAch ? `
+    <div class="form-panel">
+      <div class="field"><label>Название достижения</label><input type="text" id="achNameInput" placeholder="например, Полуночный марафон"></div>
+      <div class="field"><label>Описание</label><input type="text" id="achDescInput" placeholder="условие выполнения"></div>
+      <div class="field-row">
+        <div class="field"><label>Награда XP</label><input type="number" id="achXpInput" min="0" value="30"></div>
+        <div class="field"><label>Награда €$</label><input type="number" id="achEddiesInput" min="0" value="30"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn ghost" data-action="cancel-add-ach">Отмена</button>
+        <button class="btn" data-action="submit-ach">Учредить достижение</button>
+      </div>
+    </div>` : '';
+
+  const sysAch = STATE.achievements.filter(a=>a.system);
+  const customAch = STATE.achievements.filter(a=>!a.system);
+
+  function achCard(a){
+    const prog = a.system ? achievementProgress(a.cond) : null;
+    return `
+    <div class="ach-card ${a.unlocked?'unlocked':'locked'}">
+      <div class="ach-head">
+        <div class="ach-name">${a.unlocked?'✓':'🔒'} ${esc(a.name)}</div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span class="ach-badge">${a.system?'СИСТЕМНОЕ':'ЛИЧНОЕ'}</span>
+          ${(!a.system && !a.unlocked)?`<button class="icon-btn" data-action="delete-ach" data-id="${a.id}">✕</button>`:''}
+        </div>
+      </div>
+      <div class="ach-desc">${esc(a.desc)}</div>
+      ${prog?`<div class="ach-progress">${a.unlocked?'ВЫПОЛНЕНО':'ПРОГРЕСС: '+prog}</div>`:''}
+      <div class="ach-foot">
+        <div class="ach-reward">+${a.xp} XP<span class="ed">+${a.eddies} €$</span></div>
+        ${(!a.system && !a.unlocked)?`<button class="btn sm cyan" data-action="claim-ach" data-id="${a.id}">Отметить</button>`:''}
+        ${a.unlocked?`<span style="font-size:9.5px;color:var(--dim2);font-family:var(--font-mono);">${fmtDT(a.unlockedAt)}</span>`:''}
+      </div>
+    </div>`;
+  }
+
+  return `
+    <div class="section-title">Системные награды</div>
+    ${sysAch.map(achCard).join('')}
+    <div class="section-title">Личные достижения</div>
+    ${!UI.showAddAch ? `<button class="btn full" data-action="toggle-add-ach" style="margin-bottom:12px;">+ Учредить достижение</button>` : ''}
+    ${addForm}
+    ${customAch.length===0 ? `<div class="empty-note">Личных достижений пока нет.<br>Придумай свою собственную цель — и награду за неё.</div>` : customAch.map(achCard).join('')}
+  `;
+}
+
+function renderLog(){
+  const filters = [
+    {id:'all', lb:'Все'},
+    {id:'quest', lb:'Фиксер'},
+    {id:'boss', lb:'Киберпсихи'},
+    {id:'purchase', lb:'Покупки'},
+    {id:'achievement', lb:'Награды'},
+  ];
+  let list = STATE.log.slice();
+  if(UI.logFilter!=='all') list = list.filter(e=>e.type===UI.logFilter);
+
+  const iconMap = {quest:'▶', boss:'☠', purchase:'$', achievement:'★'};
+  const colorMap = {quest:'var(--cyan)', boss:'var(--red)', purchase:'var(--yellow)', achievement:'var(--green)'};
+  const nameMap = {quest:'Задание от фиксера', boss:'Битва с киберпсихом', purchase:'Покупка', achievement:'Достижение'};
+
+  return `
+    <div class="section-title">Журнал событий</div>
+    <div class="seg">${filters.map(f=>`<button class="seg-btn ${UI.logFilter===f.id?'active':''}" data-action="set-log-filter" data-filter="${f.id}">${f.lb}</button>`).join('')}</div>
+    ${list.length===0 ? `<div class="empty-note">Журнал пуст.<br>История твоих дел в Найт-Сити появится здесь.</div>` :
+      `<div class="panel">${list.map(e=>{
+        const br = e.branch ? branchByKey(e.branch) : null;
+        const rewardParts = [];
+        if(e.xp) rewardParts.push(`+${e.xp} XP`);
+        if(e.eddies) rewardParts.push(`${e.eddies>0?'+':''}${e.eddies} €$`);
+        return `
+        <div class="log-item">
+          <div class="log-ic" style="--lc:${colorMap[e.type]||'var(--dim)'}">${iconMap[e.type]||'•'}</div>
+          <div class="log-body">
+            <div class="log-title">${esc(e.title)}</div>
+            <div class="log-sub">${nameMap[e.type]||''}${br?' · '+esc(br.name):''}${rewardParts.length?' · '+rewardParts.join(' '):''}</div>
+            <div class="log-time">${fmtDT(e.at)}</div>
+          </div>
+        </div>`;
+      }).join('')}</div>`}
+  `;
+}
+
+function renderSettings(){
+  return `
+  <div class="overlay" data-action="close-settings">
+    <div class="modal">
+      <div class="modal-title">Настройки<button class="modal-close" data-action="close-settings">✕</button></div>
+      <button class="btn full cyan" data-action="export-data">⇓ Экспортировать прогресс</button>
+      <button class="btn full ghost" data-action="import-trigger">⇑ Импортировать прогресс</button>
+      <div class="danger-zone">
+        <div class="lbl">Опасная зона</div>
+        <button class="btn full red" data-action="reset-all">Сбросить весь прогресс</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* =================== EVENT DELEGATION =================== */
+document.getElementById('shell').addEventListener('click', function(e){
+  const el = e.target.closest('[data-action]');
+  if(!el) return;
+  const action = el.dataset.action;
+  const id = el.dataset.id;
+
+  // Клик на фон-оверлей закрывает модалку; клик на пустое место внутри самого
+  // окна (не по кнопке) не должен закрывать её.
+  if(action==='close-settings' && el.classList.contains('overlay') && e.target!==el) return;
+
+  switch(action){
+    case 'set-tab': UI.tab = el.dataset.tab; UI.showAddTask=false; UI.showAddShop=false; UI.showAddAch=false; render(); break;
+    case 'toggle-add-task': UI.showAddTask = !UI.showAddTask; render(); break;
+    case 'cancel-add-task': UI.showAddTask = false; render(); break;
+    case 'set-task-type': UI.taskType = el.dataset.type; render(); break;
+    case 'submit-task': {
+      const title = document.getElementById('taskTitleInput').value;
+      const branch = document.getElementById('taskBranchSelect').value;
+      const xp = document.getElementById('taskXpInput').value;
+      const eddies = document.getElementById('taskEddiesInput').value;
+      UI.showAddTask=false;
+      addTask(UI.taskType, title, branch, xp, eddies);
+      break;
+    }
+    case 'complete-task': completeTask(id); break;
+    case 'delete-task': deleteTask(id); break;
+    case 'set-task-filter': UI.taskFilter = el.dataset.filter; render(); break;
+
+    case 'toggle-add-shop': UI.showAddShop = !UI.showAddShop; render(); break;
+    case 'cancel-add-shop': UI.showAddShop = false; render(); break;
+    case 'submit-shop': {
+      const name = document.getElementById('shopNameInput').value;
+      const desc = document.getElementById('shopDescInput').value;
+      const cost = document.getElementById('shopCostInput').value;
+      UI.showAddShop=false;
+      addShopItem(name, desc, cost);
+      break;
+    }
+    case 'buy-item': buyItem(id); break;
+    case 'delete-shop': deleteShopItem(id); break;
+
+    case 'toggle-add-ach': UI.showAddAch = !UI.showAddAch; render(); break;
+    case 'cancel-add-ach': UI.showAddAch = false; render(); break;
+    case 'submit-ach': {
+      const name = document.getElementById('achNameInput').value;
+      const desc = document.getElementById('achDescInput').value;
+      const xp = document.getElementById('achXpInput').value;
+      const eddies = document.getElementById('achEddiesInput').value;
+      UI.showAddAch=false;
+      addAchievementCustom(name, desc, xp, eddies);
+      break;
+    }
+    case 'claim-ach': claimAchievement(id); break;
+    case 'delete-ach': deleteAchievementCustom(id); break;
+
+    case 'set-log-filter': UI.logFilter = el.dataset.filter; render(); break;
+
+    case 'open-settings': UI.showSettings = true; render(); break;
+    case 'close-settings': UI.showSettings = false; render(); break;
+    case 'retry-save': retrySave(); break;
+    case 'export-data': exportData(); break;
+    case 'import-trigger': document.getElementById('importFileInput').click(); break;
+    case 'reset-all':
+      if(confirm('Стереть весь прогресс без возможности восстановления? Рекомендуем сначала сделать экспорт.')){
+        UI.showSettings = false;
+        resetAll();
+      }
+      break;
+  }
+});
+document.getElementById('importFileInput').addEventListener('change', handleImportFile);
+
+/* =================== INIT =================== */
+function init(){
+  const loaded = loadState();
+  STATE = loaded ? migrateState(loaded) : defaultState();
+  render();
+}
+init();
+</script>
+
+<script>
+  // Регистрация service worker для офлайн-работы и установки как приложение
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('service-worker.js').catch(function(err){
+        console.error('SW registration failed', err);
+      });
+    });
+  }
+</script>
+</body>
+</html>
