@@ -4,17 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>NIGHT CITY // TRACKER</title>
-
-<!-- PWA -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#07070b">
-<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Night City">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<meta name="apple-mobile-web-app-title" content="NC Tracker">
+<meta name="mobile-web-app-capable" content="yes">
 <style>
   :root{
     --bg:#07070b;
@@ -352,18 +349,18 @@ const BRANCHES = [
 ];
 
 const SYSTEM_ACHIEVEMENTS = [
-  {id:'sys_first_step', name:'Первый шаг', desc:'Выполнено первое задание от фиксера', xp:20, eddies:20, system:true, cond:'first_quest'},
-  {id:'sys_psycho_hunter', name:'Охотник на киберпсихов', desc:'Победить киберпсихов 3 раза', xp:50, eddies:50, system:true, cond:'boss_3'},
-  {id:'sys_first_purchase', name:'Первая покупка', desc:'Купить что-то в лавке торговца', xp:15, eddies:0, system:true, cond:'purchase_1'},
-  {id:'sys_runner7', name:'Раннер', desc:'Занимайся 7 дней подряд', xp:70, eddies:70, system:true, cond:'streak_7'},
-  {id:'sys_reaper_priest', name:'И жнец, и жрец', desc:'Достигнуть 5 уровня в каждой ветке', xp:150, eddies:150, system:true, cond:'all_branches_5'},
-  {id:'sys_real_netrunner', name:'Реальный нетраннер', desc:'Достигнуть 5 уровня в ветке «Нетраннер»', xp:60, eddies:60, system:true, cond:'branch_5_netrunner'},
-  {id:'sys_cyberhacker', name:'Кибер-хакер', desc:'Достигнуть 5 уровня в ветке «Python»', xp:60, eddies:60, system:true, cond:'branch_5_python'},
-  {id:'sys_arasaka_designer', name:'Дизайнер Арасаки', desc:'Достигнуть 5 уровня в ветке «Кибер-дизайн»', xp:60, eddies:60, system:true, cond:'branch_5_cyberdesign'},
-  {id:'sys_cyberspace_reader', name:'Чтец Киберпространства', desc:'Достигнуть 5 уровня в ветке «Книжный червь»', xp:60, eddies:60, system:true, cond:'branch_5_bookworm'},
-  {id:'sys_mercenary_nc', name:'Наёмник Найт-Сити', desc:'Достигнуть ранга «Наёмник»', xp:100, eddies:100, system:true, cond:'rank_10'},
-  {id:'sys_good_morning_nc', name:'Доброе утро, Найт-Сити', desc:'Достигнуть ранга «Легенда Найт-Сити»', xp:500, eddies:500, system:true, cond:'rank_20'},
-  {id:'sys_own_fixer', name:'Сам себе фиксер', desc:'Достигнуть 5 уровня в ветке «Кибер-дела»', xp:60, eddies:60, system:true, cond:'branch_5_cyberaffairs'},
+  {id:'sys_first_step', name:'Первый шаг', desc:'Выполнено первое задание от фиксера', xp:50, eddies:1000, system:true, cond:'first_quest'},
+  {id:'sys_psycho_hunter', name:'Охотник на киберпсихов', desc:'Победить киберпсихов 3 раза', xp:200, eddies:5000, system:true, cond:'boss_3'},
+  {id:'sys_first_purchase', name:'Первая покупка', desc:'Купить что-то в лавке торговца', xp:50, eddies:0, system:true, cond:'purchase_1'},
+  {id:'sys_runner7', name:'Раннер', desc:'Занимайся 7 дней подряд', xp:200, eddies:7000, system:true, cond:'streak_7'},
+  {id:'sys_reaper_priest', name:'И жнец, и жрец', desc:'Достигнуть 5 уровня в каждой ветке', xp:500, eddies:20000, system:true, cond:'all_branches_5'},
+  {id:'sys_real_netrunner', name:'Реальный нетраннер', desc:'Достигнуть 5 уровня в ветке «Нетраннер»', xp:150, eddies:10000, system:true, cond:'branch_5_netrunner'},
+  {id:'sys_cyberhacker', name:'Кибер-хакер', desc:'Достигнуть 5 уровня в ветке «Python»', xp:150, eddies:10000, system:true, cond:'branch_5_python'},
+  {id:'sys_arasaka_designer', name:'Дизайнер Арасаки', desc:'Достигнуть 5 уровня в ветке «Кибер-дизайн»', xp:150, eddies:10000, system:true, cond:'branch_5_cyberdesign'},
+  {id:'sys_cyberspace_reader', name:'Чтец Киберпространства', desc:'Достигнуть 5 уровня в ветке «Книжный червь»', xp:150, eddies:10000, system:true, cond:'branch_5_bookworm'},
+  {id:'sys_mercenary_nc', name:'Наёмник Найт-Сити', desc:'Достигнуть ранга «Наёмник»', xp:500, eddies:45000, system:true, cond:'rank_10'},
+  {id:'sys_good_morning_nc', name:'Доброе утро, Найт-Сити', desc:'Достигнуть ранга «Легенда Найт-Сити»', xp:1000, eddies:50000, system:true, cond:'rank_20'},
+  {id:'sys_own_fixer', name:'Сам себе фиксер', desc:'Достигнуть 5 уровня в ветке «Кибер-дела»', xp:150, eddies:10000, system:true, cond:'branch_5_cyberaffairs'},
 ];
 
 const DEFAULT_SHOP = [
@@ -409,8 +406,13 @@ function migrateState(loaded){
   s.purchases = (loaded&&loaded.purchases)||[];
   s.activityDates = (loaded&&loaded.activityDates)||[];
   const existing = (loaded&&loaded.achievements)||[];
+  const sysMap = {}; SYSTEM_ACHIEVEMENTS.forEach(sa=>{ sysMap[sa.id]=sa; });
   const existingIds = new Set(existing.map(a=>a.id));
-  s.achievements = existing.slice();
+  // Системные достижения обновляем до актуального названия/описания/награды
+  // (чтобы правки задним числом применялись и к уже сохранённому прогрессу),
+  // но статус выполнения (unlocked/unlockedAt) сохраняем как есть.
+  // Личные достижения пользователя не трогаем.
+  s.achievements = existing.map(a=> sysMap[a.id] ? {...sysMap[a.id], unlocked:a.unlocked, unlockedAt:a.unlockedAt} : a);
   SYSTEM_ACHIEVEMENTS.forEach(sa=>{ if(!existingIds.has(sa.id)) s.achievements.push({...sa, unlocked:false, unlockedAt:null}); });
   s.eddies = typeof loaded?.eddies==='number' ? loaded.eddies : 0;
   s.bonusXP = typeof loaded?.bonusXP==='number' ? loaded.bonusXP : 0;
@@ -1112,23 +1114,23 @@ document.getElementById('shell').addEventListener('click', function(e){
 document.getElementById('importFileInput').addEventListener('change', handleImportFile);
 
 /* =================== INIT =================== */
+/* =================== PWA: SERVICE WORKER =================== */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(err=>{
+      // На file:// и в некоторых песочницах service worker недоступен —
+      // это ожидаемо и не мешает работе самого трекера.
+      console.log('SW registration skipped:', err && err.message);
+    });
+  });
+}
+
 function init(){
   const loaded = loadState();
   STATE = loaded ? migrateState(loaded) : defaultState();
   render();
 }
 init();
-</script>
-
-<script>
-  // Регистрация service worker для офлайн-работы и установки как приложение
-  if('serviceWorker' in navigator){
-    window.addEventListener('load', function(){
-      navigator.serviceWorker.register('service-worker.js').catch(function(err){
-        console.error('SW registration failed', err);
-      });
-    });
-  }
 </script>
 </body>
 </html>
