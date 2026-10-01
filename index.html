@@ -55,6 +55,13 @@
     backdrop-filter:blur(6px);
   }
   .hdr-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .hdr-id{display:flex;align-items:center;gap:9px;cursor:pointer;min-width:0;}
+  .avatar-wrap{flex-shrink:0;line-height:0;}
+  .avatar-img{border-radius:50%;object-fit:cover;border:1.5px solid var(--yellow);display:block;}
+  .avatar-fallback{border-radius:50%;border:1.5px solid var(--yellow);background:var(--panel2);color:var(--yellow);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;}
+  .profile-edit{background:var(--panel2);border:1px solid var(--border);padding:13px;margin-bottom:16px;}
+  .profile-edit .row{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+  .profile-avatar-actions{display:flex;gap:8px;flex-wrap:wrap;}
   .brand{
     font-family:var(--font-display);font-weight:800;font-style:italic;
     font-size:15px;letter-spacing:0.5px;color:var(--text);
@@ -248,6 +255,9 @@
   .type-toggle button{flex:1;padding:8px;border:1px solid var(--border);background:var(--bg);color:var(--dim);font-size:11px;font-family:var(--font-display);font-weight:700;text-transform:uppercase;cursor:pointer;}
   .type-toggle button.active.quest{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,0.08);}
   .type-toggle button.active.boss{border-color:var(--red);color:var(--red);background:rgba(255,46,77,0.08);}
+  .swatch-row{display:flex;flex-wrap:wrap;gap:8px;}
+  .swatch{width:28px;height:28px;border-radius:50%;background:var(--sc);border:2px solid transparent;cursor:pointer;padding:0;}
+  .swatch.active{border-color:var(--text);box-shadow:0 0 0 2px var(--bg), 0 0 0 3px var(--sc);}
 
   /* shop */
   .shop-card{background:var(--panel);border:1px solid var(--border);padding:12px;margin-bottom:9px;display:flex;gap:10px;align-items:center;}
@@ -311,6 +321,7 @@
 <div id="scanlines"></div>
 <div id="toastContainer"></div>
 <input type="file" id="importFileInput" accept="application/json" style="display:none">
+<input type="file" id="avatarFileInput" accept="image/*" style="display:none">
 <div id="shell">
   <div id="app"><div class="loading-screen">ПОДКЛЮЧЕНИЕ К СЕТИ NIGHT CITY...</div></div>
 </div>
@@ -340,13 +351,14 @@ const RANKS = [
   {name:'Легенда Найт-Сити', color:'#fcee0a'},
 ];
 
-const BRANCHES = [
+const DEFAULT_BRANCHES = [
   {key:'python', name:'Python', icon:'⌁', color:'#00e5ff'},
   {key:'cyberdesign', name:'Кибер-дизайн', icon:'◈', color:'#ff2bd6'},
   {key:'bookworm', name:'Книжный червь', icon:'▤', color:'#ffb000'},
   {key:'netrunner', name:'Нетраннер', icon:'◎', color:'#39ff14'},
   {key:'cyberaffairs', name:'Кибер-дела', icon:'⬡', color:'#fcee0a'},
 ];
+const BRANCH_COLOR_PALETTE = ['#00e5ff','#ff2bd6','#ffb000','#39ff14','#fcee0a','#ff2e4d','#8b5cf6','#06b6d4','#f97316','#a3e635','#f43f5e','#38bdf8'];
 
 const SYSTEM_ACHIEVEMENTS = [
   {id:'sys_first_step', name:'Первый шаг', desc:'Выполнено первое задание от фиксера', xp:50, eddies:1000, system:true, cond:'first_quest'},
@@ -361,6 +373,8 @@ const SYSTEM_ACHIEVEMENTS = [
   {id:'sys_mercenary_nc', name:'Наёмник Найт-Сити', desc:'Достигнуть ранга «Наёмник»', xp:500, eddies:45000, system:true, cond:'rank_10'},
   {id:'sys_good_morning_nc', name:'Доброе утро, Найт-Сити', desc:'Достигнуть ранга «Легенда Найт-Сити»', xp:1000, eddies:50000, system:true, cond:'rank_20'},
   {id:'sys_own_fixer', name:'Сам себе фиксер', desc:'Достигнуть 5 уровня в ветке «Кибер-дела»', xp:150, eddies:10000, system:true, cond:'branch_5_cyberaffairs'},
+  {id:'sys_millionaire', name:'Миллионер Найт-Сити', desc:'Заработать 1 000 000 евродолларов (по общей сумме заработанного)', xp:500, eddies:25000, system:true, cond:'eddies_total_1m'},
+  {id:'sys_big_spender', name:'Ценный покупатель', desc:'Потратить в лавке торговца 50 000 евродолларов (по общей сумме трат)', xp:100, eddies:2000, system:true, cond:'eddies_spent_50k'},
 ];
 
 const DEFAULT_SHOP = [
@@ -377,7 +391,8 @@ const STORAGE_KEY = 'night_city_tracker_state_v1';
 let STATE = null;
 let saveOk = true;
 let UI = {tab:'overview', taskType:'quest', taskFilter:'all', logFilter:'all',
-          showAddTask:false, showAddShop:false, showAddAch:false, showSettings:false};
+          showAddTask:false, showAddShop:false, showAddAch:false, showAddBranch:false, showSettings:false,
+          newBranchColor:BRANCH_COLOR_PALETTE[0]};
 
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 
@@ -385,6 +400,10 @@ function defaultState(){
   return {
     eddies:0,
     bonusXP:0,
+    totalEddiesEarned:0,
+    totalEddiesSpent:0,
+    profile:{nickname:'', avatar:null},
+    branchDefs:DEFAULT_BRANCHES.map(b=>({...b})),
     branches:{python:0, cyberdesign:0, bookworm:0, netrunner:0, cyberaffairs:0},
     tasks:[],
     log:[],
@@ -399,12 +418,17 @@ function defaultState(){
 function migrateState(loaded){
   const d = defaultState();
   const s = Object.assign({}, d, loaded||{});
+  s.profile = Object.assign({}, d.profile, (loaded&&loaded.profile)||{});
+  s.branchDefs = (loaded&&loaded.branchDefs&&loaded.branchDefs.length)?loaded.branchDefs:d.branchDefs;
   s.branches = Object.assign({}, d.branches, (loaded&&loaded.branches)||{});
+  s.branchDefs.forEach(b=>{ if(typeof s.branches[b.key]!=='number') s.branches[b.key]=0; });
   s.tasks = (loaded&&loaded.tasks)||[];
   s.log = (loaded&&loaded.log)||[];
   s.shop = (loaded&&loaded.shop&&loaded.shop.length)?loaded.shop:d.shop;
   s.purchases = (loaded&&loaded.purchases)||[];
   s.activityDates = (loaded&&loaded.activityDates)||[];
+  s.totalEddiesEarned = typeof loaded?.totalEddiesEarned==='number' ? loaded.totalEddiesEarned : 0;
+  s.totalEddiesSpent = typeof loaded?.totalEddiesSpent==='number' ? loaded.totalEddiesSpent : 0;
   const existing = (loaded&&loaded.achievements)||[];
   const sysMap = {}; SYSTEM_ACHIEVEMENTS.forEach(sa=>{ sysMap[sa.id]=sa; });
   const existingIds = new Set(existing.map(a=>a.id));
@@ -479,7 +503,7 @@ function computeLevel(totalXP){
 }
 function getBranchLevel(key){ return computeLevel(STATE.branches[key]||0); }
 function getAccountXP(){
-  return BRANCHES.reduce((s,b)=>s+(STATE.branches[b.key]||0),0) + (STATE.bonusXP||0);
+  return STATE.branchDefs.reduce((s,b)=>s+(STATE.branches[b.key]||0),0) + (STATE.bonusXP||0);
 }
 function getAccountLevel(){ return computeLevel(getAccountXP()); }
 function getRankIndex(level){ return Math.min(20, Math.floor((level-1)/5)+1); }
@@ -509,7 +533,7 @@ function evalCondition(cond){
     case 'boss_3': return countLog('boss')>=3;
     case 'purchase_1': return countLog('purchase')>=1;
     case 'streak_7': return calcStreak(STATE.activityDates)>=7;
-    case 'all_branches_5': return BRANCHES.every(b=>getBranchLevel(b.key).level>=5);
+    case 'all_branches_5': return STATE.branchDefs.every(b=>getBranchLevel(b.key).level>=5);
     case 'branch_5_python': return getBranchLevel('python').level>=5;
     case 'branch_5_cyberdesign': return getBranchLevel('cyberdesign').level>=5;
     case 'branch_5_bookworm': return getBranchLevel('bookworm').level>=5;
@@ -517,6 +541,8 @@ function evalCondition(cond){
     case 'branch_5_cyberaffairs': return getBranchLevel('cyberaffairs').level>=5;
     case 'rank_10': return getRankIndex(getAccountLevel().level)>=10;
     case 'rank_20': return getRankIndex(getAccountLevel().level)>=20;
+    case 'eddies_total_1m': return (STATE.totalEddiesEarned||0)>=1000000;
+    case 'eddies_spent_50k': return (STATE.totalEddiesSpent||0)>=50000;
     default: return false;
   }
 }
@@ -526,7 +552,7 @@ function achievementProgress(cond){
     case 'boss_3': return Math.min(countLog('boss'),3)+' / 3';
     case 'purchase_1': return Math.min(countLog('purchase'),1)+' / 1';
     case 'streak_7': return Math.min(calcStreak(STATE.activityDates),7)+' / 7 дн.';
-    case 'all_branches_5': return BRANCHES.filter(b=>getBranchLevel(b.key).level>=5).length+' / 5 веток';
+    case 'all_branches_5': return STATE.branchDefs.filter(b=>getBranchLevel(b.key).level>=5).length+' / '+STATE.branchDefs.length+' веток';
     case 'branch_5_python': return Math.min(getBranchLevel('python').level,5)+' / 5 ур.';
     case 'branch_5_cyberdesign': return Math.min(getBranchLevel('cyberdesign').level,5)+' / 5 ур.';
     case 'branch_5_bookworm': return Math.min(getBranchLevel('bookworm').level,5)+' / 5 ур.';
@@ -534,6 +560,8 @@ function achievementProgress(cond){
     case 'branch_5_cyberaffairs': return Math.min(getBranchLevel('cyberaffairs').level,5)+' / 5 ур.';
     case 'rank_10': return Math.min(getRankIndex(getAccountLevel().level),10)+' / 10 ранг';
     case 'rank_20': return Math.min(getRankIndex(getAccountLevel().level),20)+' / 20 ранг';
+    case 'eddies_total_1m': return fmtNum(Math.min(STATE.totalEddiesEarned||0,1000000))+' / 1 000 000 €$';
+    case 'eddies_spent_50k': return fmtNum(Math.min(STATE.totalEddiesSpent||0,50000))+' / 50 000 €$';
     default: return null;
   }
 }
@@ -544,6 +572,7 @@ function checkAchievements(){
       a.unlocked=true; a.unlockedAt=Date.now();
       STATE.bonusXP += (a.xp||0);
       STATE.eddies += (a.eddies||0);
+      STATE.totalEddiesEarned += (a.eddies||0);
       STATE.log.unshift({id:uid(), type:'achievement', title:a.name, xp:a.xp, eddies:a.eddies, at:Date.now()});
       unlocked.push(a);
     }
@@ -555,7 +584,7 @@ function checkAchievements(){
 function commit(mutate){
   const prevLevel = getAccountLevel().level;
   const prevRank = getRank(prevLevel).name;
-  const prevBranchLv = {}; BRANCHES.forEach(b=>prevBranchLv[b.key]=getBranchLevel(b.key).level);
+  const prevBranchLv = {}; STATE.branchDefs.forEach(b=>prevBranchLv[b.key]=getBranchLevel(b.key).level);
 
   mutate();
   const newUnlocked = checkAchievements();
@@ -564,7 +593,7 @@ function commit(mutate){
   const newLevel = getAccountLevel().level;
   const newRank = getRank(newLevel).name;
   const toasts=[];
-  BRANCHES.forEach(b=>{
+  STATE.branchDefs.forEach(b=>{
     const nl = getBranchLevel(b.key).level;
     if(nl>prevBranchLv[b.key]) toasts.push({text:`${b.name.toUpperCase()}: УРОВЕНЬ ${nl}`, kind:'branch', color:b.color});
   });
@@ -591,6 +620,7 @@ function completeTask(id){
     STATE.tasks.splice(idx,1);
     STATE.branches[t.branch] = (STATE.branches[t.branch]||0) + t.xp;
     STATE.eddies += t.eddies;
+    STATE.totalEddiesEarned += t.eddies;
     const today = todayStr();
     if(!STATE.activityDates.includes(today)) STATE.activityDates.push(today);
     STATE.log.unshift({id:uid(), type:t.type, title:t.title, branch:t.branch, xp:t.xp, eddies:t.eddies, at:Date.now()});
@@ -600,6 +630,79 @@ function deleteTask(id){
   STATE.tasks = STATE.tasks.filter(t=>t.id!==id);
   persist(); render();
 }
+function addBranch(name, icon, color){
+  if(!name || !name.trim()) return;
+  const key = 'b_' + uid();
+  STATE.branchDefs.push({key, name:name.trim(), icon:(icon&&icon.trim())||'◆', color: color||BRANCH_COLOR_PALETTE[0]});
+  STATE.branches[key] = 0;
+  persist(); render();
+}
+function deleteBranch(key){
+  if(STATE.branchDefs.length<=1){ showToast({text:'НУЖНА ХОТЯ БЫ ОДНА ВЕТВЬ', kind:'error'}); return; }
+  const b = branchByKey(key);
+  const xp = STATE.branches[key]||0;
+  const msg = xp>0
+    ? `Удалить ветвь «${b.name}»? Её опыт (${xp} XP) перестанет учитываться в общем уровне, активные задания этой ветки будут удалены. Записи в журнале останутся.`
+    : `Удалить ветвь «${b.name}»? Активные задания этой ветки будут удалены.`;
+  if(!confirm(msg)) return;
+  STATE.branchDefs = STATE.branchDefs.filter(b=>b.key!==key);
+  delete STATE.branches[key];
+  STATE.tasks = STATE.tasks.filter(t=>t.branch!==key);
+  persist(); render();
+}
+function saveProfile(nickname){
+  STATE.profile.nickname = (nickname||'').trim().slice(0,24);
+  persist(); render();
+}
+function resizeImageFile(file, maxSize){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        try{
+          const canvas = document.createElement('canvas');
+          canvas.width = maxSize; canvas.height = maxSize;
+          const ctx = canvas.getContext('2d');
+          const s = Math.min(img.width, img.height);
+          const sx = (img.width-s)/2, sy = (img.height-s)/2;
+          ctx.drawImage(img, sx, sy, s, s, 0, 0, maxSize, maxSize);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        }catch(err){ reject(err); }
+      };
+      img.onerror = ()=>reject(new Error('image load failed'));
+      img.src = e.target.result;
+    };
+    reader.onerror = ()=>reject(new Error('file read failed'));
+    reader.readAsDataURL(file);
+  });
+}
+async function handleAvatarFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const dataUrl = await resizeImageFile(file, 160);
+    STATE.profile.avatar = dataUrl;
+    persist(); render();
+  }catch(err){
+    console.error('avatar resize failed', err);
+    showToast({text:'НЕ УДАЛОСЬ ЗАГРУЗИТЬ ИЗОБРАЖЕНИЕ', kind:'error'});
+  }
+  e.target.value='';
+}
+function removeAvatar(){
+  STATE.profile.avatar = null;
+  persist(); render();
+}
+function avatarHTML(size){
+  const p = STATE.profile || {};
+  if(p.avatar){
+    return `<img src="${p.avatar}" class="avatar-img" style="width:${size}px;height:${size}px;">`;
+  }
+  const letter = esc((p.nickname||'V').trim().charAt(0).toUpperCase() || 'V');
+  return `<div class="avatar-fallback" style="width:${size}px;height:${size}px;font-size:${Math.round(size*0.42)}px;">${letter}</div>`;
+}
+
 function addShopItem(name,desc,cost){
   if(!name || !name.trim()) return;
   STATE.shop.push({id:uid(), name:name.trim(), desc:(desc||'').trim(), cost:Math.max(0,parseInt(cost)||0)});
@@ -615,6 +718,7 @@ function buyItem(id){
   if(STATE.eddies < item.cost){ showToast({text:'НЕДОСТАТОЧНО €$', kind:'error'}); return; }
   commit(()=>{
     STATE.eddies -= item.cost;
+    STATE.totalEddiesSpent += item.cost;
     STATE.purchases.push({id:uid(), itemId:item.id, name:item.name, cost:item.cost, at:Date.now()});
     STATE.log.unshift({id:uid(), type:'purchase', title:item.name, eddies:-item.cost, at:Date.now()});
   });
@@ -632,6 +736,7 @@ function claimAchievement(id){
     a.unlocked=true; a.unlockedAt=Date.now();
     STATE.bonusXP += (a.xp||0);
     STATE.eddies += (a.eddies||0);
+    STATE.totalEddiesEarned += (a.eddies||0);
     STATE.log.unshift({id:uid(), type:'achievement', title:a.name, xp:a.xp, eddies:a.eddies, at:Date.now()});
   });
 }
@@ -691,8 +796,11 @@ function showToast({text, kind='info', color}){
 }
 
 /* =================== HELPERS =================== */
+function fmtNum(n){ return Math.round(n||0).toLocaleString('ru-RU'); }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function branchByKey(k){ return BRANCHES.find(b=>b.key===k); }
+function branchByKey(k){
+  return STATE.branchDefs.find(b=>b.key===k) || {key:k, name:'Удалённая ветвь', icon:'✕', color:'#5c5c6e'};
+}
 function fmtDT(ts){
   return new Date(ts).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
 }
@@ -710,12 +818,15 @@ function renderHeader(){
   return `
   <div id="headerBar">
     <div class="hdr-top">
-      <div>
-        <div class="brand">NIGHT CITY <b>// TRACKER</b></div>
-        <div class="brand-sub">СЕТЕВОЙ ПРОФИЛЬ АКТИВЕН</div>
+      <div class="hdr-id" data-action="open-settings">
+        <div class="avatar-wrap">${avatarHTML(34)}</div>
+        <div>
+          <div class="brand">NIGHT CITY <b>// TRACKER</b></div>
+          <div class="brand-sub">${STATE.profile.nickname ? esc(STATE.profile.nickname.toUpperCase()) : 'СЕТЕВОЙ ПРОФИЛЬ АКТИВЕН'}</div>
+        </div>
       </div>
       <div style="display:flex;align-items:center;">
-        <div id="eddiesBadge"><span class="cur">€$</span><span class="val">${STATE.eddies}</span></div>
+        <div id="eddiesBadge"><span class="cur">€$</span><span class="val">${fmtNum(STATE.eddies)}</span></div>
         <button id="gearBtn" data-action="open-settings" title="Настройки">⚙</button>
       </div>
     </div>
@@ -797,7 +908,7 @@ function renderOverview(){
     </div>
 
     <div class="section-title">Ветви</div>
-    ${BRANCHES.map(b=>{
+    ${STATE.branchDefs.map(b=>{
       const lv = getBranchLevel(b.key);
       const p = Math.min(100, Math.round((lv.into/lv.need)*100));
       return `
@@ -833,7 +944,7 @@ function renderTasks(){
       </div>
       <div class="field">
         <label>Ветвь</label>
-        <select id="taskBranchSelect">${BRANCHES.map(b=>`<option value="${b.key}">${esc(b.name)}</option>`).join('')}</select>
+        <select id="taskBranchSelect">${STATE.branchDefs.map(b=>`<option value="${b.key}">${esc(b.name)}</option>`).join('')}</select>
       </div>
       <div class="field-row">
         <div class="field"><label>Награда XP</label><input type="number" id="taskXpInput" min="0" value="20"></div>
@@ -877,9 +988,27 @@ function renderTasks(){
 }
 
 function renderBranches(){
+  const addForm = UI.showAddBranch ? `
+    <div class="form-panel">
+      <div class="field"><label>Название ветви</label><input type="text" id="branchNameInput" maxlength="24" placeholder="например, Гитара"></div>
+      <div class="field"><label>Иконка (символ)</label><input type="text" id="branchIconInput" maxlength="2" placeholder="◆"></div>
+      <div class="field">
+        <label>Цвет</label>
+        <div class="swatch-row">
+          ${BRANCH_COLOR_PALETTE.map(c=>`<button class="swatch ${UI.newBranchColor===c?'active':''}" data-action="pick-branch-color" data-color="${c}" style="--sc:${c}"></button>`).join('')}
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn ghost" data-action="cancel-add-branch">Отмена</button>
+        <button class="btn" data-action="submit-branch">Создать ветвь</button>
+      </div>
+    </div>` : '';
+
   return `
     <div class="section-title">Ветви развития</div>
-    ${BRANCHES.map(b=>{
+    ${!UI.showAddBranch ? `<button class="btn full" data-action="toggle-add-branch" style="margin-bottom:12px;">+ Новая ветвь</button>` : ''}
+    ${addForm}
+    ${STATE.branchDefs.map(b=>{
       const lv = getBranchLevel(b.key);
       const p = Math.min(100, Math.round((lv.into/lv.need)*100));
       const qc = STATE.log.filter(e=>e.branch===b.key && e.type==='quest').length;
@@ -890,6 +1019,7 @@ function renderBranches(){
           <div class="ic">${b.icon}</div>
           <div class="nm">${esc(b.name)}</div>
           <div class="lvbig"><div class="n">${lv.level}</div><div class="l">УРОВЕНЬ</div></div>
+          <button class="icon-btn" data-action="delete-branch" data-id="${b.key}" title="Удалить ветвь">✕</button>
         </div>
         <div class="bar" style="--bc:${b.color};--bc2:${b.color}"><i style="width:${p}%"></i></div>
         <div class="foot">
@@ -1030,6 +1160,22 @@ function renderSettings(){
   <div class="overlay" data-action="close-settings">
     <div class="modal">
       <div class="modal-title">Настройки<button class="modal-close" data-action="close-settings">✕</button></div>
+
+      <div class="profile-edit">
+        <div class="row">
+          ${avatarHTML(56)}
+          <div class="profile-avatar-actions">
+            <button class="btn sm ghost" data-action="pick-avatar">Сменить аватар</button>
+            ${STATE.profile.avatar?`<button class="btn sm red" data-action="remove-avatar">Удалить</button>`:''}
+          </div>
+        </div>
+        <div class="field">
+          <label>Псевдоним</label>
+          <input type="text" id="nicknameInput" maxlength="24" placeholder="например, V" value="${esc(STATE.profile.nickname)}">
+        </div>
+        <button class="btn full" data-action="save-profile">Сохранить профиль</button>
+      </div>
+
       <button class="btn full cyan" data-action="export-data">⇓ Экспортировать прогресс</button>
       <button class="btn full ghost" data-action="import-trigger">⇑ Импортировать прогресс</button>
       <div class="danger-zone">
@@ -1052,7 +1198,19 @@ document.getElementById('shell').addEventListener('click', function(e){
   if(action==='close-settings' && el.classList.contains('overlay') && e.target!==el) return;
 
   switch(action){
-    case 'set-tab': UI.tab = el.dataset.tab; UI.showAddTask=false; UI.showAddShop=false; UI.showAddAch=false; render(); break;
+    case 'set-tab': UI.tab = el.dataset.tab; UI.showAddTask=false; UI.showAddShop=false; UI.showAddAch=false; UI.showAddBranch=false; render(); break;
+
+    case 'toggle-add-branch': UI.showAddBranch = !UI.showAddBranch; UI.newBranchColor = BRANCH_COLOR_PALETTE[0]; render(); break;
+    case 'cancel-add-branch': UI.showAddBranch = false; render(); break;
+    case 'pick-branch-color': UI.newBranchColor = el.dataset.color; render(); break;
+    case 'submit-branch': {
+      const name = document.getElementById('branchNameInput').value;
+      const icon = document.getElementById('branchIconInput').value;
+      UI.showAddBranch = false;
+      addBranch(name, icon, UI.newBranchColor);
+      break;
+    }
+    case 'delete-branch': deleteBranch(id); break;
     case 'toggle-add-task': UI.showAddTask = !UI.showAddTask; render(); break;
     case 'cancel-add-task': UI.showAddTask = false; render(); break;
     case 'set-task-type': UI.taskType = el.dataset.type; render(); break;
@@ -1101,6 +1259,13 @@ document.getElementById('shell').addEventListener('click', function(e){
     case 'open-settings': UI.showSettings = true; render(); break;
     case 'close-settings': UI.showSettings = false; render(); break;
     case 'retry-save': retrySave(); break;
+    case 'pick-avatar': document.getElementById('avatarFileInput').click(); break;
+    case 'remove-avatar': removeAvatar(); break;
+    case 'save-profile': {
+      const nickname = document.getElementById('nicknameInput').value;
+      saveProfile(nickname);
+      break;
+    }
     case 'export-data': exportData(); break;
     case 'import-trigger': document.getElementById('importFileInput').click(); break;
     case 'reset-all':
@@ -1112,6 +1277,7 @@ document.getElementById('shell').addEventListener('click', function(e){
   }
 });
 document.getElementById('importFileInput').addEventListener('change', handleImportFile);
+document.getElementById('avatarFileInput').addEventListener('change', handleAvatarFile);
 
 /* =================== INIT =================== */
 /* =================== PWA: SERVICE WORKER =================== */
