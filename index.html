@@ -55,7 +55,8 @@
     backdrop-filter:blur(6px);
   }
   .hdr-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
-  .hdr-id{display:flex;align-items:center;gap:9px;cursor:pointer;min-width:0;}
+  .hdr-id{display:flex;align-items:center;gap:9px;cursor:pointer;min-width:0;flex:1 1 auto;overflow:hidden;}
+  .hdr-id-text{min-width:0;overflow:hidden;}
   .avatar-wrap{flex-shrink:0;line-height:0;}
   .avatar-img{border-radius:50%;object-fit:cover;border:1.5px solid var(--yellow);display:block;}
   .avatar-fallback{border-radius:50%;border:1.5px solid var(--yellow);background:var(--panel2);color:var(--yellow);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;}
@@ -66,17 +67,21 @@
     font-family:var(--font-display);font-weight:800;font-style:italic;
     font-size:15px;letter-spacing:0.5px;color:var(--text);
     clip-path:polygon(0 0,100% 0,92% 100%,0% 100%);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   .brand b{color:var(--yellow);}
-  .brand-sub{font-size:9px;color:var(--dim);letter-spacing:2px;font-family:var(--font-mono);margin-top:1px;}
+  .brand-sub{font-size:9px;color:var(--dim);letter-spacing:2px;font-family:var(--font-mono);margin-top:1px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .brand-sub.nickname-glow{color:var(--nc);text-shadow:0 0 4px var(--nc), 0 0 11px var(--nc);font-weight:700;}
+  .hdr-right{display:flex;align-items:center;flex-shrink:0;}
   #eddiesBadge{
-    display:flex;align-items:center;gap:6px;
+    display:flex;align-items:center;gap:6px;flex-shrink:0;white-space:nowrap;
     background:var(--panel2);border:1px solid var(--border);
     padding:6px 10px;
     clip-path:polygon(8px 0,100% 0,100% 100%,0 100%,0 8px);
   }
-  #eddiesBadge .val{font-family:var(--font-mono);font-weight:700;color:var(--yellow);font-size:14px;}
-  #eddiesBadge .cur{font-size:10px;color:var(--dim);}
+  #eddiesBadge .val{font-family:var(--font-mono);font-weight:700;color:var(--yellow);font-size:14px;white-space:nowrap;}
+  #eddiesBadge .cur{font-size:10px;color:var(--dim);white-space:nowrap;}
   #gearBtn{
     background:none;border:1px solid var(--border);color:var(--dim);
     width:30px;height:30px;display:flex;align-items:center;justify-content:center;
@@ -258,6 +263,22 @@
   .swatch-row{display:flex;flex-wrap:wrap;gap:8px;}
   .swatch{width:28px;height:28px;border-radius:50%;background:var(--sc);border:2px solid transparent;cursor:pointer;padding:0;}
   .swatch.active{border-color:var(--text);box-shadow:0 0 0 2px var(--bg), 0 0 0 3px var(--sc);}
+  .icon-row{display:flex;flex-wrap:wrap;gap:8px;}
+  .icon-opt{width:34px;height:34px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+  .icon-opt.active{border-color:var(--yellow);color:var(--yellow);background:rgba(252,238,10,0.08);}
+  .branch-menu-wrap{position:relative;}
+  .branch-menu{
+    position:absolute;top:calc(100% + 4px);right:0;z-index:6;min-width:160px;
+    background:var(--panel2);border:1px solid var(--border);
+    display:flex;flex-direction:column;box-shadow:0 6px 18px rgba(0,0,0,0.45);
+  }
+  .branch-menu button{
+    background:none;border:none;color:var(--text);text-align:left;
+    padding:10px 12px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--border-soft);
+    font-family:inherit;
+  }
+  .branch-menu button:last-child{border-bottom:none;}
+  .branch-menu button.danger{color:var(--red);}
 
   /* shop */
   .shop-card{background:var(--panel);border:1px solid var(--border);padding:12px;margin-bottom:9px;display:flex;gap:10px;align-items:center;}
@@ -359,6 +380,7 @@ const DEFAULT_BRANCHES = [
   {key:'cyberaffairs', name:'Кибер-дела', icon:'⬡', color:'#fcee0a'},
 ];
 const BRANCH_COLOR_PALETTE = ['#00e5ff','#ff2bd6','#ffb000','#39ff14','#fcee0a','#ff2e4d','#8b5cf6','#06b6d4','#f97316','#a3e635','#f43f5e','#38bdf8'];
+const BRANCH_ICON_PALETTE = ['⌁','◈','▤','◎','⬡','⬢','◆','▲','★','●'];
 
 const SYSTEM_ACHIEVEMENTS = [
   {id:'sys_first_step', name:'Первый шаг', desc:'Выполнено первое задание от фиксера', xp:50, eddies:1000, system:true, cond:'first_quest'},
@@ -392,7 +414,7 @@ let STATE = null;
 let saveOk = true;
 let UI = {tab:'overview', taskType:'quest', taskFilter:'all', logFilter:'all',
           showAddTask:false, showAddShop:false, showAddAch:false, showAddBranch:false, showSettings:false,
-          newBranchColor:BRANCH_COLOR_PALETTE[0]};
+          newBranchColor:BRANCH_COLOR_PALETTE[0], newBranchIcon:BRANCH_ICON_PALETTE[0], openBranchMenu:null};
 
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 
@@ -402,7 +424,7 @@ function defaultState(){
     bonusXP:0,
     totalEddiesEarned:0,
     totalEddiesSpent:0,
-    profile:{nickname:'', avatar:null},
+    profile:{nickname:'', avatar:null, nicknameColor:'#fcee0a'},
     branchDefs:DEFAULT_BRANCHES.map(b=>({...b})),
     branches:{python:0, cyberdesign:0, bookworm:0, netrunner:0, cyberaffairs:0},
     tasks:[],
@@ -627,7 +649,10 @@ function completeTask(id){
   });
 }
 function deleteTask(id){
-  STATE.tasks = STATE.tasks.filter(t=>t.id!==id);
+  const t = STATE.tasks.find(x=>x.id===id);
+  if(!t) return;
+  if(!confirm(`Удалить контракт «${t.title}»? Это действие нельзя отменить.`)) return;
+  STATE.tasks = STATE.tasks.filter(x=>x.id!==id);
   persist(); render();
 }
 function addBranch(name, icon, color){
@@ -635,6 +660,16 @@ function addBranch(name, icon, color){
   const key = 'b_' + uid();
   STATE.branchDefs.push({key, name:name.trim(), icon:(icon&&icon.trim())||'◆', color: color||BRANCH_COLOR_PALETTE[0]});
   STATE.branches[key] = 0;
+  persist(); render();
+}
+function renameBranch(key){
+  const b = STATE.branchDefs.find(x=>x.key===key);
+  if(!b) return;
+  const name = prompt('Новое название ветви:', b.name);
+  if(name===null) return;
+  const trimmed = name.trim().slice(0,24);
+  if(!trimmed) return;
+  b.name = trimmed;
   persist(); render();
 }
 function deleteBranch(key){
@@ -652,6 +687,10 @@ function deleteBranch(key){
 }
 function saveProfile(nickname){
   STATE.profile.nickname = (nickname||'').trim().slice(0,24);
+  persist(); render();
+}
+function setNicknameColor(color){
+  STATE.profile.nicknameColor = color;
   persist(); render();
 }
 function resizeImageFile(file, maxSize){
@@ -709,6 +748,9 @@ function addShopItem(name,desc,cost){
   persist(); render();
 }
 function deleteShopItem(id){
+  const item = STATE.shop.find(s=>s.id===id);
+  if(!item) return;
+  if(!confirm(`Удалить товар «${item.name}» из лавки? Это действие нельзя отменить.`)) return;
   STATE.shop = STATE.shop.filter(s=>s.id!==id);
   persist(); render();
 }
@@ -743,6 +785,7 @@ function claimAchievement(id){
 function deleteAchievementCustom(id){
   const a = STATE.achievements.find(x=>x.id===id);
   if(!a || a.system) return;
+  if(!confirm(`Удалить личное достижение «${a.name}»? Это действие нельзя отменить.`)) return;
   STATE.achievements = STATE.achievements.filter(x=>x.id!==id);
   persist(); render();
 }
@@ -820,12 +863,14 @@ function renderHeader(){
     <div class="hdr-top">
       <div class="hdr-id" data-action="open-settings">
         <div class="avatar-wrap">${avatarHTML(34)}</div>
-        <div>
+        <div class="hdr-id-text">
           <div class="brand">NIGHT CITY <b>// TRACKER</b></div>
-          <div class="brand-sub">${STATE.profile.nickname ? esc(STATE.profile.nickname.toUpperCase()) : 'СЕТЕВОЙ ПРОФИЛЬ АКТИВЕН'}</div>
+          ${STATE.profile.nickname
+            ? `<div class="brand-sub nickname-glow" style="--nc:${STATE.profile.nicknameColor||'#fcee0a'}">${esc(STATE.profile.nickname.toUpperCase())}</div>`
+            : `<div class="brand-sub">СЕТЕВОЙ ПРОФИЛЬ АКТИВЕН</div>`}
         </div>
       </div>
-      <div style="display:flex;align-items:center;">
+      <div class="hdr-right">
         <div id="eddiesBadge"><span class="cur">€$</span><span class="val">${fmtNum(STATE.eddies)}</span></div>
         <button id="gearBtn" data-action="open-settings" title="Настройки">⚙</button>
       </div>
@@ -991,7 +1036,12 @@ function renderBranches(){
   const addForm = UI.showAddBranch ? `
     <div class="form-panel">
       <div class="field"><label>Название ветви</label><input type="text" id="branchNameInput" maxlength="24" placeholder="например, Гитара"></div>
-      <div class="field"><label>Иконка (символ)</label><input type="text" id="branchIconInput" maxlength="2" placeholder="◆"></div>
+      <div class="field">
+        <label>Иконка</label>
+        <div class="icon-row">
+          ${BRANCH_ICON_PALETTE.map(ic=>`<button class="icon-opt ${UI.newBranchIcon===ic?'active':''}" data-action="pick-branch-icon" data-icon="${ic}">${ic}</button>`).join('')}
+        </div>
+      </div>
       <div class="field">
         <label>Цвет</label>
         <div class="swatch-row">
@@ -1013,13 +1063,21 @@ function renderBranches(){
       const p = Math.min(100, Math.round((lv.into/lv.need)*100));
       const qc = STATE.log.filter(e=>e.branch===b.key && e.type==='quest').length;
       const bc = STATE.log.filter(e=>e.branch===b.key && e.type==='boss').length;
+      const menuOpen = UI.openBranchMenu===b.key;
       return `
       <div class="branch-card" style="--bc:${b.color}">
         <div class="head">
           <div class="ic">${b.icon}</div>
           <div class="nm">${esc(b.name)}</div>
           <div class="lvbig"><div class="n">${lv.level}</div><div class="l">УРОВЕНЬ</div></div>
-          <button class="icon-btn" data-action="delete-branch" data-id="${b.key}" title="Удалить ветвь">✕</button>
+          <div class="branch-menu-wrap">
+            <button class="icon-btn" data-action="toggle-branch-menu" data-id="${b.key}" title="Меню">⋮</button>
+            ${menuOpen ? `
+            <div class="branch-menu">
+              <button data-action="rename-branch" data-id="${b.key}">✎ Переименовать</button>
+              <button class="danger" data-action="delete-branch" data-id="${b.key}">✕ Удалить</button>
+            </div>` : ''}
+          </div>
         </div>
         <div class="bar" style="--bc:${b.color};--bc2:${b.color}"><i style="width:${p}%"></i></div>
         <div class="foot">
@@ -1173,6 +1231,12 @@ function renderSettings(){
           <label>Псевдоним</label>
           <input type="text" id="nicknameInput" maxlength="24" placeholder="например, V" value="${esc(STATE.profile.nickname)}">
         </div>
+        <div class="field">
+          <label>Цвет псевдонима</label>
+          <div class="swatch-row">
+            ${BRANCH_COLOR_PALETTE.map(c=>`<button class="swatch ${(STATE.profile.nicknameColor||'#fcee0a')===c?'active':''}" data-action="pick-nickname-color" data-color="${c}" style="--sc:${c}"></button>`).join('')}
+          </div>
+        </div>
         <button class="btn full" data-action="save-profile">Сохранить профиль</button>
       </div>
 
@@ -1197,19 +1261,30 @@ document.getElementById('shell').addEventListener('click', function(e){
   // окна (не по кнопке) не должен закрывать её.
   if(action==='close-settings' && el.classList.contains('overlay') && e.target!==el) return;
 
+  // Открытое меню ветви («⋮») закрываем при любом другом действии, кроме
+  // собственно управления этим меню.
+  if(!['toggle-branch-menu','rename-branch','delete-branch'].includes(action)) UI.openBranchMenu = null;
+
   switch(action){
     case 'set-tab': UI.tab = el.dataset.tab; UI.showAddTask=false; UI.showAddShop=false; UI.showAddAch=false; UI.showAddBranch=false; render(); break;
 
-    case 'toggle-add-branch': UI.showAddBranch = !UI.showAddBranch; UI.newBranchColor = BRANCH_COLOR_PALETTE[0]; render(); break;
+    case 'toggle-add-branch':
+      UI.showAddBranch = !UI.showAddBranch;
+      UI.newBranchColor = BRANCH_COLOR_PALETTE[0];
+      UI.newBranchIcon = BRANCH_ICON_PALETTE[0];
+      render();
+      break;
     case 'cancel-add-branch': UI.showAddBranch = false; render(); break;
     case 'pick-branch-color': UI.newBranchColor = el.dataset.color; render(); break;
+    case 'pick-branch-icon': UI.newBranchIcon = el.dataset.icon; render(); break;
     case 'submit-branch': {
       const name = document.getElementById('branchNameInput').value;
-      const icon = document.getElementById('branchIconInput').value;
       UI.showAddBranch = false;
-      addBranch(name, icon, UI.newBranchColor);
+      addBranch(name, UI.newBranchIcon, UI.newBranchColor);
       break;
     }
+    case 'toggle-branch-menu': UI.openBranchMenu = (UI.openBranchMenu===id) ? null : id; render(); break;
+    case 'rename-branch': renameBranch(id); break;
     case 'delete-branch': deleteBranch(id); break;
     case 'toggle-add-task': UI.showAddTask = !UI.showAddTask; render(); break;
     case 'cancel-add-task': UI.showAddTask = false; render(); break;
@@ -1261,6 +1336,7 @@ document.getElementById('shell').addEventListener('click', function(e){
     case 'retry-save': retrySave(); break;
     case 'pick-avatar': document.getElementById('avatarFileInput').click(); break;
     case 'remove-avatar': removeAvatar(); break;
+    case 'pick-nickname-color': setNicknameColor(el.dataset.color); break;
     case 'save-profile': {
       const nickname = document.getElementById('nicknameInput').value;
       saveProfile(nickname);
